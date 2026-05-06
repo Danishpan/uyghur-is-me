@@ -1,0 +1,513 @@
+<!DOCTYPE html>
+<html lang="ug">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Сөз Карталири · Уйғур тили</title>
+  <link rel="stylesheet" href="shared/theme.css" />
+  <style>
+    #game-wrap {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      width: 100%;
+      max-width: 500px;
+      padding: 12px 16px 24px;
+    }
+
+    /* ── Screens ─────────────────────────────────────── */
+    .screen { width: 100%; }
+    .screen.hidden { display: none !important; }
+
+    /* ── Category grid ───────────────────────────────── */
+    .cats-intro {
+      text-align: center;
+      font-size: 0.82rem;
+      color: var(--subtext);
+      margin-bottom: 14px;
+    }
+    #cat-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+    .cat-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 16px 12px;
+      cursor: pointer;
+      transition: border-color 0.2s, transform 0.1s;
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .cat-card:hover  { border-color: var(--green); }
+    .cat-card:active { transform: scale(0.97); }
+    .cat-emoji    { font-size: 1.8rem; margin-bottom: 6px; }
+    .cat-name-ug  { font-size: 0.95rem; font-weight: 700; }
+    .cat-name-en  { font-size: 0.7rem; color: var(--subtext); margin-bottom: 8px; }
+    .cat-meta     { display: flex; justify-content: space-between; align-items: center; }
+    .cat-due      { font-size: 0.72rem; background: var(--yellow); color: #000; border-radius: 10px; padding: 2px 8px; font-weight: 700; }
+    .cat-due.zero { background: var(--green); color: #fff; }
+    .cat-mastered { font-size: 0.7rem; color: var(--subtext); }
+
+    /* ── Study screen ────────────────────────────────── */
+    #screen-study { display: flex; flex-direction: column; align-items: center; }
+
+    #study-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      width: 100%;
+      margin-bottom: 8px;
+    }
+    #btn-back {
+      background: none;
+      border: 1px solid var(--border);
+      color: var(--subtext);
+      border-radius: var(--radius);
+      padding: 6px 12px;
+      font-size: 0.8rem;
+      cursor: pointer;
+    }
+    #study-cat-name  { font-size: 0.85rem; font-weight: 700; color: var(--subtext); }
+    #study-prog-lbl  { font-size: 0.8rem; color: var(--subtext); }
+
+    #prog-bar-wrap {
+      width: 100%; height: 4px;
+      background: var(--border);
+      border-radius: 2px;
+      margin-bottom: 24px;
+      overflow: hidden;
+    }
+    #prog-bar {
+      height: 100%; background: var(--green);
+      border-radius: 2px;
+      transition: width 0.4s ease;
+      width: 0%;
+    }
+
+    /* ── Flip card ───────────────────────────────────── */
+    #card-area {
+      width: 100%;
+      perspective: 1000px;
+      margin-bottom: 24px;
+    }
+    #card {
+      width: 100%; height: 220px;
+      position: relative;
+      transform-style: preserve-3d;
+      transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+      cursor: pointer;
+      border-radius: 16px;
+      -webkit-tap-highlight-color: transparent;
+    }
+    #card.flipped { transform: rotateY(180deg); }
+    .card-face {
+      position: absolute; inset: 0;
+      backface-visibility: hidden;
+      -webkit-backface-visibility: hidden;
+      border-radius: 16px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      padding: 24px;
+    }
+    .card-back-face { transform: rotateY(180deg); }
+
+    #card-ug-front {
+      font-size: 2.2rem; font-weight: 800;
+      text-align: center; line-height: 1.2;
+      margin-bottom: 10px;
+    }
+    .card-tap-hint { font-size: 0.72rem; color: var(--subtext); }
+
+    #card-en       { font-size: 1.5rem; font-weight: 700; color: var(--green); text-align: center; margin-bottom: 8px; }
+    #card-ug-back  { font-size: 1rem; font-weight: 600; text-align: center; color: var(--subtext); margin-bottom: 6px; }
+    #card-cat-lbl  { font-size: 0.65rem; color: var(--subtext); letter-spacing: 0.08em; }
+
+    /* ── Rating buttons ──────────────────────────────── */
+    #rating-row {
+      display: flex; gap: 10px; width: 100%;
+      transition: opacity 0.2s;
+    }
+    #rating-row.hidden { visibility: hidden; pointer-events: none; }
+    .btn-rate {
+      flex: 1; padding: 12px 6px;
+      border: none; border-radius: var(--radius);
+      font-size: 0.82rem; font-weight: 800;
+      cursor: pointer; transition: filter 0.15s;
+      line-height: 1.3;
+    }
+    .btn-rate:active { filter: brightness(0.85); }
+    .btn-rate .sub   { display: block; font-size: 0.62rem; font-weight: 400; opacity: 0.7; margin-top: 2px; }
+    .btn-hard { background: #c0392b; color: #fff; }
+    .btn-good { background: var(--yellow); color: #000; }
+    .btn-easy { background: var(--green);  color: #fff; }
+
+    /* ── Done screen ─────────────────────────────────── */
+    #screen-done {
+      display: flex; flex-direction: column;
+      align-items: center; text-align: center;
+      padding-top: 32px; gap: 14px;
+    }
+    .done-emoji { font-size: 3rem; }
+    .done-title { font-size: 1.3rem; font-weight: 800; }
+    .done-sub   { font-size: 0.85rem; color: var(--subtext); }
+    .done-stats { display: flex; gap: 32px; margin: 4px 0; }
+    .done-stat  { display: flex; flex-direction: column; align-items: center; }
+    .done-n     { font-size: 2rem; font-weight: 800; color: var(--green); }
+    .done-l     { font-size: 0.68rem; color: var(--subtext); }
+  </style>
+</head>
+<body>
+
+<div id="toasts"></div>
+
+<header>
+  <a href="index.html" class="btn-back">← Оюнлар</a>
+  <h1>Сөз Карталири</h1>
+  <p class="subtitle">БҮГҮН ҮГӘН · ӘТӘ ЕСИҢДӘ</p>
+</header>
+
+<div id="game-wrap">
+
+  <!-- ── Screen 1: Category picker ─────────────────── -->
+  <div id="screen-cats" class="screen">
+    <p class="cats-intro">Башлаш үчүн бир тема таллаңиз 👇</p>
+    <div id="cat-grid"></div>
+  </div>
+
+  <!-- ── Screen 2: Study ───────────────────────────── -->
+  <div id="screen-study" class="screen hidden">
+    <div id="study-header">
+      <button id="btn-back">← Артқа</button>
+      <span id="study-cat-name"></span>
+      <span id="study-prog-lbl"></span>
+    </div>
+    <div id="prog-bar-wrap"><div id="prog-bar"></div></div>
+
+    <div id="card-area">
+      <div id="card">
+        <!-- Front -->
+        <div class="card-face">
+          <div id="card-ug-front"></div>
+          <div class="card-tap-hint">Ачиш үчүн чертиң ↓</div>
+        </div>
+        <!-- Back -->
+        <div class="card-face card-back-face">
+          <div id="card-en"></div>
+          <div id="card-ug-back"></div>
+          <div id="card-cat-lbl"></div>
+        </div>
+      </div>
+    </div>
+
+    <div id="rating-row" class="hidden">
+      <button class="btn-rate btn-hard" onclick="rate(0)">Қийин<span class="sub">Again</span></button>
+      <button class="btn-rate btn-good" onclick="rate(1)">Яхши<span class="sub">Good</span></button>
+      <button class="btn-rate btn-easy" onclick="rate(2)">Асан<span class="sub">Easy</span></button>
+    </div>
+  </div>
+
+  <!-- ── Screen 3: Session complete ───────────────── -->
+  <div id="screen-done" class="screen hidden">
+    <div class="done-emoji">🎉</div>
+    <div class="done-title">Аҗайип!</div>
+    <div class="done-sub" id="done-sub"></div>
+    <div class="done-stats">
+      <div class="done-stat">
+        <span class="done-n" id="done-reviewed">0</span>
+        <span class="done-l">Карталар</span>
+      </div>
+      <div class="done-stat">
+        <span class="done-n" id="done-easy">0</span>
+        <span class="done-l">Асан</span>
+      </div>
+    </div>
+    <button class="btn-primary" style="max-width:280px" onclick="showCats()">← Темиларға</button>
+  </div>
+
+</div><!-- /game-wrap -->
+
+<script src="shared/utils.js"></script>
+<script>
+// ═══════════════════════════════════════════════════════
+//  WORD DATA
+//  ─────────────────────────────────────────────────────
+//  To add a category: push a new object to CATEGORIES.
+//  To add words:      push { ug, en } to its words[].
+//  levels: 1=Башланғуч, 2=Орта, 3=Илғар
+//  All ug strings must be Uyghur Cyrillic — no Latin!
+//  Verify with the node snippet in CLAUDE.md.
+// ═══════════════════════════════════════════════════════
+const CATEGORIES = [
+  {
+    id: 'greetings', level: 1, emoji: '👋',
+    nameUg: 'Саламлашмақ', nameEn: 'Greetings & Phrases',
+    words: [
+      { ug: 'Яхшимусиз',      en: 'Hello (formal)' },
+      { ug: 'Яхшимусән',      en: 'Hello (casual)' },
+      { ug: 'Рәхмәт',         en: 'Thank you' },
+      { ug: 'Хош кәлдиңиз',   en: 'Welcome' },
+      { ug: 'Хош',            en: 'Goodbye' },
+      { ug: 'Болиду',         en: 'OK / Alright' },
+      { ug: 'Кечурим',        en: 'Sorry / Excuse me' },
+      { ug: 'Яхши',           en: 'Good / Fine' },
+      { ug: 'Яман',           en: 'Bad' },
+      { ug: 'Ноши',           en: 'Bon appétit' },
+    ]
+  },
+  {
+    id: 'family', level: 1, emoji: '👨‍👩‍👧',
+    nameUg: 'Аилә', nameEn: 'Family & People',
+    words: [
+      { ug: 'Ата',   en: 'Father' },
+      { ug: 'Ана',   en: 'Mother' },
+      { ug: 'Оғул',  en: 'Son' },
+      { ug: 'Қиз',   en: 'Daughter / Girl' },
+      { ug: 'Аға',   en: 'Older brother' },
+      { ug: 'Апа',   en: 'Older sister' },
+      { ug: 'Бала',  en: 'Child' },
+      { ug: 'Аял',   en: 'Wife / Woman' },
+      { ug: 'Эр',    en: 'Husband / Man' },
+      { ug: 'Буви',  en: 'Grandmother' },
+      { ug: 'Бова',  en: 'Grandfather' },
+    ]
+  },
+  {
+    id: 'food', level: 1, emoji: '🍽️',
+    nameUg: 'Тамақ', nameEn: 'Food & Drink',
+    words: [
+      { ug: 'Нан',    en: 'Bread' },
+      { ug: 'Чай',    en: 'Tea' },
+      { ug: 'Су',     en: 'Water' },
+      { ug: 'Гөш',    en: 'Meat' },
+      { ug: 'Палав',  en: 'Plov (rice dish)' },
+      { ug: 'Яблуқ',  en: 'Apple' },
+      { ug: 'Үзүм',   en: 'Grape' },
+      { ug: 'Тухум',  en: 'Egg' },
+      { ug: 'Тамақ',  en: 'Food / Meal' },
+      { ug: 'Шорпа',  en: 'Broth / Soup' },
+      { ug: 'Лагман', en: 'Lagman noodles' },
+    ]
+  },
+  {
+    id: 'numbers', level: 1, emoji: '🔢',
+    nameUg: 'Санлар вә Рәңләр', nameEn: 'Numbers & Colors',
+    words: [
+      { ug: 'Бир',     en: 'One (1)' },
+      { ug: 'Икки',    en: 'Two (2)' },
+      { ug: 'Үч',      en: 'Three (3)' },
+      { ug: 'Төт',     en: 'Four (4)' },
+      { ug: 'Бәш',     en: 'Five (5)' },
+      { ug: 'Алтә',    en: 'Six (6)' },
+      { ug: 'Йәттә',   en: 'Seven (7)' },
+      { ug: 'Сәккиз',  en: 'Eight (8)' },
+      { ug: 'Тоққуз',  en: 'Nine (9)' },
+      { ug: 'Он',      en: 'Ten (10)' },
+      { ug: 'Қизил',   en: 'Red' },
+      { ug: 'Яшил',    en: 'Green' },
+      { ug: 'Көк',     en: 'Blue' },
+      { ug: 'Ақ',      en: 'White' },
+      { ug: 'Қара',    en: 'Black' },
+      { ug: 'Сары',    en: 'Yellow' },
+    ]
+  },
+  // ── INTERMEDIATE (add when ready) ──────────────────
+  // {
+  //   id: 'body', level: 2, emoji: '🫀',
+  //   nameUg: 'Тән Әзалири', nameEn: 'Body Parts',
+  //   words: [ ... ]
+  // },
+  // {
+  //   id: 'time', level: 2, emoji: '🕐',
+  //   nameUg: 'Вақит', nameEn: 'Time & Days',
+  //   words: [ ... ]
+  // },
+];
+
+// ═══════════════════════════════════════════════════════
+//  SPACED REPETITION  (simplified SM-2)
+//  Storage key: 'fc-sr'
+//  Format: { "catId:wordIdx": { interval, ease, reps, due } }
+//
+//  Rating 0 = Қийин (Hard)  → reset to interval 1, lower ease
+//  Rating 1 = Яхши (Good)   → normal progression
+//  Rating 2 = Асан (Easy)   → faster progression, raise ease
+//  Mastered = interval ≥ 21 days
+// ═══════════════════════════════════════════════════════
+const SR_KEY = 'fc-sr';
+let progress = JSON.parse(localStorage.getItem(SR_KEY) || '{}');
+
+function saveProgress() { localStorage.setItem(SR_KEY, JSON.stringify(progress)); }
+function ckey(catId, i) { return `${catId}:${i}`; }
+
+function isDue(catId, i) {
+  const p = progress[ckey(catId, i)];
+  return !p || Date.now() >= p.due;
+}
+function isMastered(catId, i) {
+  const p = progress[ckey(catId, i)];
+  return p && p.interval >= 21;
+}
+
+function rateCard(catId, i, rating) {
+  const k = ckey(catId, i);
+  let p = progress[k] || { interval: 0, ease: 2.5, reps: 0 };
+
+  if (rating === 0) {                             // Hard — reset
+    p.interval = 1;
+    p.ease = Math.max(1.3, p.ease - 0.2);
+    p.reps = 0;
+  } else if (rating === 1) {                      // Good
+    p.interval = p.reps === 0 ? 1 : p.reps === 1 ? 3 : Math.round(p.interval * p.ease);
+    p.reps++;
+  } else {                                        // Easy
+    p.interval = p.reps === 0 ? 3 : Math.round(p.interval * p.ease * 1.3);
+    p.ease = Math.min(3.0, p.ease + 0.1);
+    p.reps++;
+  }
+
+  p.due = Date.now() + Math.max(1, p.interval) * 86400000;
+  progress[k] = p;
+  saveProgress();
+}
+
+function getCatStats(cat) {
+  let due = 0, mastered = 0;
+  cat.words.forEach((_, i) => {
+    if (isMastered(cat.id, i)) mastered++;
+    else if (isDue(cat.id, i)) due++;
+  });
+  return { due, mastered, total: cat.words.length };
+}
+
+// ═══════════════════════════════════════════════════════
+//  SESSION STATE
+// ═══════════════════════════════════════════════════════
+let sCat = null, sQueue = [], sIdx = 0, sEasy = 0, flipped = false;
+
+// ═══════════════════════════════════════════════════════
+//  SCREENS
+// ═══════════════════════════════════════════════════════
+const SCREENS = ['screen-cats', 'screen-study', 'screen-done'];
+function showScreen(id) {
+  SCREENS.forEach(s => document.getElementById(s).classList.toggle('hidden', s !== id));
+}
+
+// ─── Category grid ────────────────────────────────────
+function showCats() {
+  const grid = document.getElementById('cat-grid');
+  grid.innerHTML = CATEGORIES.map(cat => {
+    const { due, mastered, total } = getCatStats(cat);
+    const dueChip = due === 0
+      ? `<span class="cat-due zero">✓ Тамам</span>`
+      : `<span class="cat-due">${due} карта</span>`;
+    return `
+      <div class="cat-card" onclick="startSession('${cat.id}')">
+        <div class="cat-emoji">${cat.emoji}</div>
+        <div class="cat-name-ug">${cat.nameUg}</div>
+        <div class="cat-name-en">${cat.nameEn}</div>
+        <div class="cat-meta">
+          ${dueChip}
+          <span class="cat-mastered">${mastered}/${total} ✓</span>
+        </div>
+      </div>`;
+  }).join('');
+  showScreen('screen-cats');
+}
+
+// ─── Start a session ──────────────────────────────────
+function startSession(catId) {
+  sCat = CATEGORIES.find(c => c.id === catId);
+
+  // Build due queue (exclude mastered)
+  const due = sCat.words
+    .map((w, i) => ({ w, i }))
+    .filter(({ i }) => isDue(sCat.id, i) && !isMastered(sCat.id, i));
+
+  if (!due.length) {
+    toast('Бу темада бүгүн карта йоқ ✓');
+    return;
+  }
+
+  // Fisher-Yates shuffle
+  for (let j = due.length - 1; j > 0; j--) {
+    const r = Math.floor(Math.random() * (j + 1));
+    [due[j], due[r]] = [due[r], due[j]];
+  }
+
+  sQueue = due; sIdx = 0; sEasy = 0;
+  document.getElementById('study-cat-name').textContent = sCat.nameUg;
+  showScreen('screen-study');
+  showCard();
+}
+
+// ─── Render current card ──────────────────────────────
+function showCard() {
+  if (sIdx >= sQueue.length) { showDone(); return; }
+
+  const { w } = sQueue[sIdx];
+  flipped = false;
+
+  // Snap back to front instantly (no transition) so the back face of the
+  // NEW card is never visible mid-spin. Re-enable transition after reflow.
+  const card = document.getElementById('card');
+  card.style.transition = 'none';
+  card.classList.remove('flipped');
+
+  document.getElementById('card-ug-front').textContent = w.ug;
+  document.getElementById('card-en').textContent       = w.en;
+  document.getElementById('card-ug-back').textContent  = w.ug;
+  document.getElementById('card-cat-lbl').textContent  = sCat.nameUg.toUpperCase();
+  document.getElementById('rating-row').classList.add('hidden');
+
+  const pct = Math.round((sIdx / sQueue.length) * 100);
+  document.getElementById('prog-bar').style.width       = pct + '%';
+  document.getElementById('study-prog-lbl').textContent = `${sIdx + 1} / ${sQueue.length}`;
+
+  // Double rAF ensures the browser has painted before re-enabling the flip transition
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    card.style.transition = '';
+  }));
+}
+
+// ─── Flip ─────────────────────────────────────────────
+function flipCard() {
+  if (flipped) return;
+  flipped = true;
+  document.getElementById('card').classList.add('flipped');
+  setTimeout(() => document.getElementById('rating-row').classList.remove('hidden'), 320);
+}
+
+// ─── Rate and advance ─────────────────────────────────
+function rate(r) {
+  if (!flipped) return;
+  rateCard(sCat.id, sQueue[sIdx].i, r);
+  if (r === 2) sEasy++;
+  sIdx++;
+  document.getElementById('rating-row').classList.add('hidden');
+  setTimeout(showCard, 180);
+}
+
+// ─── Session done ─────────────────────────────────────
+function showDone() {
+  document.getElementById('done-reviewed').textContent = sQueue.length;
+  document.getElementById('done-easy').textContent     = sEasy;
+  document.getElementById('done-sub').textContent      = `${sCat.nameUg} темисини тамамлидиңиз!`;
+  document.getElementById('prog-bar').style.width      = '100%';
+  showScreen('screen-done');
+}
+
+// ─── Events ───────────────────────────────────────────
+document.getElementById('card').addEventListener('click', flipCard);
+document.getElementById('btn-back').addEventListener('click', showCats);
+
+// ── Start ──
+showCats();
+</script>
+</body>
+</html>

@@ -1,0 +1,802 @@
+<!DOCTYPE html>
+<html lang="ug">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>КРОССВОРД · Уйғур тили</title>
+  <link rel="stylesheet" href="shared/theme.css" />
+  <style>
+
+    /* ── Screens ─────────────────────────────────────────── */
+    .screen { width: 100%; display: flex; flex-direction: column; align-items: center; }
+    .screen.hidden { display: none !important; }
+
+    /* ════════════════════════════════════════════════════════
+       PUZZLE LIST SCREEN
+    ════════════════════════════════════════════════════════ */
+    #screen-list {
+      max-width: 460px;
+      padding: 20px 16px 32px;
+      gap: 12px;
+    }
+    .list-intro {
+      font-size: 0.78rem;
+      color: var(--subtext);
+      text-align: center;
+      margin-bottom: 4px;
+    }
+    .puzzle-card {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      width: 100%;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 16px 18px;
+      cursor: pointer;
+      transition: border-color 0.15s, background 0.15s;
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .puzzle-card:hover  { border-color: #555; background: #202022; }
+    .puzzle-card:active { background: #1c1c1e; }
+    .puzzle-card.solved { border-color: var(--green); }
+
+    .puzzle-num {
+      font-size: 1.6rem;
+      font-weight: 800;
+      color: var(--subtext);
+      flex-shrink: 0;
+      width: 36px;
+      text-align: center;
+    }
+    .puzzle-card.solved .puzzle-num { color: var(--green); }
+
+    .puzzle-info { flex: 1; }
+    .puzzle-title {
+      font-size: 1rem;
+      font-weight: 800;
+      letter-spacing: 0.05em;
+    }
+    .puzzle-subtitle {
+      font-size: 0.74rem;
+      color: var(--subtext);
+      margin-top: 2px;
+    }
+    .puzzle-meta {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 5px;
+      flex-shrink: 0;
+    }
+    .diff-badge {
+      font-size: 0.6rem;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      padding: 3px 8px;
+      border-radius: 20px;
+    }
+    .diff-easy   { background: var(--green);  color: #fff; }
+    .diff-medium { background: var(--yellow); color: #fff; }
+    .diff-hard   { background: #8b2020;       color: #faa; }
+
+    .solved-check {
+      font-size: 1rem;
+      color: var(--green);
+      display: none;
+    }
+    .puzzle-card.solved .solved-check { display: block; }
+
+    /* ════════════════════════════════════════════════════════
+       GAME SCREEN
+    ════════════════════════════════════════════════════════ */
+    #screen-game {
+      max-width: 540px;
+      padding: 12px 12px 28px;
+      gap: 14px;
+    }
+
+    /* Back-to-list link inside game (sits above grid) */
+    #back-to-list {
+      align-self: flex-start;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 0.72rem;
+      font-weight: 700;
+      color: var(--subtext);
+      cursor: pointer;
+      letter-spacing: 0.04em;
+      padding: 4px 0;
+      border: none;
+      background: none;
+      transition: color 0.15s;
+    }
+    #back-to-list:hover { color: var(--text); }
+
+    /* Puzzle title row in game */
+    #game-title-row {
+      width: 100%;
+      display: flex;
+      align-items: baseline;
+      gap: 10px;
+    }
+    #game-puzzle-title {
+      font-size: 0.9rem;
+      font-weight: 800;
+      letter-spacing: 0.06em;
+    }
+    #game-puzzle-sub {
+      font-size: 0.7rem;
+      color: var(--subtext);
+    }
+
+    /* ── Crossword grid ───────────────────────────────────── */
+    #crossword-grid { display: grid; gap: 3px; }
+
+    .cw-cell {
+      background: #242426;
+      border: 1px solid #444;
+      border-radius: 3px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      position: relative;
+      font-weight: 800;
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
+      transition: background 0.1s, border-color 0.1s;
+    }
+    .cw-cell.empty {
+      background: transparent;
+      border-color: transparent;
+      cursor: default;
+      pointer-events: none;
+    }
+    .cw-cell.active-word   { background: #1e2f42; border-color: #3a6080; }
+    .cw-cell.active-cursor { background: #2a5070; border-color: #5090b8; }
+    .cw-cell.correct  { background: var(--green); border-color: var(--green); color: #fff; }
+    .cw-cell.wrong    { background: #6e2020;      border-color: #8b2020;      color: #faa; }
+    .cw-cell.revealed { background: #3a3a10;      border-color: #888820;      color: #ffd; }
+
+    .cell-number {
+      position: absolute;
+      top: 2px; left: 3px;
+      font-size: 0.52rem;
+      font-weight: 700;
+      color: var(--subtext);
+      line-height: 1;
+      pointer-events: none;
+    }
+    .cw-cell.active-word .cell-number,
+    .cw-cell.active-cursor .cell-number { color: #7aaccc; }
+
+    /* ── Clues panel ─────────────────────────────────────── */
+    #clues-panel { display: flex; gap: 10px; width: 100%; }
+    .clues-col {
+      flex: 1;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px;
+    }
+    .clues-heading {
+      font-size: 0.6rem;
+      font-weight: 800;
+      letter-spacing: 0.12em;
+      color: var(--subtext);
+      text-transform: uppercase;
+      margin-bottom: 7px;
+    }
+    .clue-item {
+      display: flex;
+      gap: 6px;
+      font-size: 0.74rem;
+      line-height: 1.35;
+      padding: 5px 6px;
+      border-radius: 5px;
+      cursor: pointer;
+      transition: background 0.1s;
+    }
+    .clue-item:hover { background: rgba(255,255,255,0.05); }
+    .clue-item.active { background: #1e2f42; }
+    .clue-num { font-weight: 800; color: var(--subtext); flex-shrink: 0; min-width: 14px; }
+    .clue-item.active .clue-num { color: #7aaccc; }
+    .clue-item.solved .clue-text { color: var(--subtext); text-decoration: line-through; }
+
+    /* ── Action buttons ──────────────────────────────────── */
+    #action-row { display: flex; gap: 8px; width: 100%; }
+    .btn-action {
+      flex: 1;
+      padding: 11px 4px;
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+      background: var(--surface);
+      color: var(--text);
+      font-size: 0.78rem;
+      font-weight: 700;
+      letter-spacing: 0.03em;
+      cursor: pointer;
+      transition: background 0.15s, border-color 0.15s;
+      white-space: nowrap;
+    }
+    .btn-action:hover  { background: #222; border-color: #666; }
+    .btn-action:active { filter: brightness(0.85); }
+    .btn-check { border-color: var(--green); color: var(--green); }
+    .btn-check:hover { background: #152015; }
+
+    /* ── Mobile hidden input ─────────────────────────────── */
+    #hidden-input {
+      position: fixed; left: -9999px; top: 0;
+      opacity: 0; width: 1px; height: 1px;
+    }
+
+    @media (max-width: 400px) {
+      #crossword-grid { gap: 2px; }
+      .clue-item { font-size: 0.68rem; }
+    }
+  </style>
+</head>
+<body>
+
+<div id="toasts"></div>
+
+<header>
+  <a href="index.html" class="btn-back">← Оюнлар</a>
+  <h1>КРОССВОРД</h1>
+  <p class="subtitle">УЙҒУР ТИЛИ</p>
+</header>
+
+<!-- ══════════════════════ SCREEN 1: PUZZLE LIST ════════════════════ -->
+<div id="screen-list" class="screen">
+  <p class="list-intro">Оюн тандаң</p>
+  <div id="puzzle-cards"></div>
+</div>
+
+<!-- ══════════════════════ SCREEN 2: GAME ═══════════════════════════ -->
+<div id="screen-game" class="screen hidden">
+  <button id="back-to-list">← Тизимға қайт</button>
+  <div id="game-title-row">
+    <span id="game-puzzle-title"></span>
+    <span id="game-puzzle-sub"></span>
+  </div>
+  <div id="crossword-grid"></div>
+  <div id="clues-panel">
+    <div class="clues-col">
+      <div class="clues-heading">→ Горизонтал</div>
+      <div id="clues-across"></div>
+    </div>
+    <div class="clues-col">
+      <div class="clues-heading">↓ Вертикал</div>
+      <div id="clues-down"></div>
+    </div>
+  </div>
+  <div id="action-row">
+    <button class="btn-action btn-check" id="btn-check">✓ Тексүр</button>
+    <button class="btn-action" id="btn-reset">↺ Тазала</button>
+    <button class="btn-action" id="btn-reveal">👁 Ачып бақ</button>
+  </div>
+</div>
+
+<input id="hidden-input" type="text" autocomplete="off" autocorrect="off"
+       autocapitalize="characters" spellcheck="false" inputmode="text" />
+
+<!-- Completion modal -->
+<div id="overlay">
+  <div class="modal">
+    <div class="modal-title"  id="m-title">Аҗайип! 🎉</div>
+    <div class="modal-word"   id="m-word"   style="font-size:1.3rem;letter-spacing:0.1em"></div>
+    <div class="modal-meaning" id="m-meaning"></div>
+    <div class="modal-stats">
+      <div class="stat"><span class="stat-n" id="s-played">0</span><span class="stat-l">Барлиқ оюн</span></div>
+      <div class="stat"><span class="stat-n" id="s-wins">0</span><span class="stat-l">Утуш</span></div>
+      <div class="stat"><span class="stat-n" id="s-streak">0</span><span class="stat-l">Кетма-кет</span></div>
+    </div>
+    <button class="btn-primary" id="btn-new">Йеңи оюн ▶</button>
+  </div>
+</div>
+
+<script src="shared/utils.js"></script>
+<script>
+// ═══════════════════════════════════════════════════════════════
+//  PUZZLE DEFINITIONS
+//  To add a new puzzle: push a new object to PUZZLES.
+//  Each word: { id, dir:'across'|'down', row, col, answer, clue }
+//  answer = exact Uyghur Cyrillic string, clue = Uyghur description.
+//  Verify with node snippet in CLAUDE.md before shipping.
+//
+//  Puzzle 1 layout (6 rows × 8 cols):
+//    Row 0: Т · · · · · · ·
+//    Row 1: А Р М А Н · · ·
+//    Row 2: В · · Б А Л И К
+//    Row 3: У · · · Х · · ·
+//    Row 4: Қ · · · Ш · · ·
+//    Row 5: · К И Т А П · ·
+//
+//  Puzzle 2 layout (8 rows × 7 cols):
+//    Row 0: · · А · · · ·
+//    Row 1: · · Р · · · ·
+//    Row 2: Ш А М А Л · ·
+//    Row 3: · · А Б · · ·
+//    Row 4: · · Н А Х Ш А
+//    Row 5: · Й И Л А Н ·
+//    Row 6: · · · И · · ·
+//    Row 7: · · · К · · ·
+// ═══════════════════════════════════════════════════════════════
+const PUZZLES = [
+  {
+    id: 'p1',
+    title: 'Жанлиқлар вә Сөзлүк',
+    subtitle: 'Animals & Vocabulary',
+    difficulty: 'easy',
+    words: [
+      { id:1, dir:'down',   row:0, col:0, answer:'ТАВУҚ', clue:'Үй қуши (жумуртқа берет)' },
+      { id:2, dir:'across', row:1, col:0, answer:'АРМАН', clue:'Тилек, үмид'               },
+      { id:3, dir:'down',   row:1, col:4, answer:'НАХША', clue:'Музыкалик әсәр'            },
+      { id:4, dir:'across', row:2, col:3, answer:'БАЛИК', clue:'Сулардики жанлиқ'          },
+      { id:5, dir:'across', row:5, col:1, answer:'КИТАП', clue:'Оқуш үчүн нәрсә'          },
+    ],
+  },
+  {
+    id: 'p2',
+    title: 'Табиат вә Тирлик',
+    subtitle: 'Nature & Life',
+    difficulty: 'medium',
+    words: [
+      { id:1, dir:'down',   row:0, col:2, answer:'АРМАН', clue:'Тилек, үмид'               },
+      { id:2, dir:'across', row:2, col:0, answer:'ШАМАЛ', clue:'Күчлүк жел'                },
+      { id:3, dir:'down',   row:3, col:3, answer:'БАЛИК', clue:'Сулардики жанлиқ'          },
+      { id:4, dir:'across', row:4, col:2, answer:'НАХША', clue:'Музыкалик әсәр'            },
+      { id:5, dir:'across', row:5, col:1, answer:'ЙИЛАН', clue:'Путсиз судалғучи жанлиқ'  },
+    ],
+  },
+];
+
+const DIFF_LABEL = { easy:'АСАН', medium:'ОРТА', hard:'ҚИЙИН' };
+const DIFF_CLASS = { easy:'diff-easy', medium:'diff-medium', hard:'diff-hard' };
+
+// ── Solved state ─────────────────────────────────────────
+const SOLVED_KEY = 'ug-cw-solved';
+function getSolved() { return new Set(JSON.parse(localStorage.getItem(SOLVED_KEY) || '[]')); }
+function markSolved(id) {
+  const s = getSolved(); s.add(id);
+  localStorage.setItem(SOLVED_KEY, JSON.stringify([...s]));
+}
+
+// ── Stats (shared across all crossword puzzles) ──────────
+const stats = new Stats('cw');
+
+// ═══════════════════════════════════════════════════════════════
+//  SCREEN ROUTING
+// ═══════════════════════════════════════════════════════════════
+function showList() {
+  document.getElementById('screen-game').classList.add('hidden');
+  document.getElementById('screen-list').classList.remove('hidden');
+  renderPuzzleList();
+  // scroll to top
+  window.scrollTo(0, 0);
+}
+
+function showGame(puzzle) {
+  document.getElementById('screen-list').classList.add('hidden');
+  document.getElementById('screen-game').classList.remove('hidden');
+  document.getElementById('game-puzzle-title').textContent = puzzle.title;
+  document.getElementById('game-puzzle-sub').textContent   = puzzle.subtitle;
+  loadPuzzle(puzzle);
+  window.scrollTo(0, 0);
+}
+
+// ── Puzzle list UI ───────────────────────────────────────
+function renderPuzzleList() {
+  const solved  = getSolved();
+  const container = document.getElementById('puzzle-cards');
+  container.innerHTML = '';
+  container.style.cssText = 'display:flex;flex-direction:column;gap:12px;width:100%';
+
+  PUZZLES.forEach((p, i) => {
+    const isSolved = solved.has(p.id);
+    const card = document.createElement('div');
+    card.className = 'puzzle-card' + (isSolved ? ' solved' : '');
+    card.innerHTML = `
+      <div class="puzzle-num">${i + 1}</div>
+      <div class="puzzle-info">
+        <div class="puzzle-title">${p.title}</div>
+        <div class="puzzle-subtitle">${p.subtitle}</div>
+      </div>
+      <div class="puzzle-meta">
+        <span class="diff-badge ${DIFF_CLASS[p.difficulty]}">${DIFF_LABEL[p.difficulty]}</span>
+        <span class="solved-check">✓ Шудур</span>
+      </div>`;
+    card.addEventListener('click', () => showGame(p));
+    container.appendChild(card);
+  });
+}
+
+// ── Back-to-list button ──────────────────────────────────
+document.getElementById('back-to-list').addEventListener('click', () => {
+  document.removeEventListener('keydown', onPhysicalKey);
+  closeModal();
+  showList();
+});
+
+// ═══════════════════════════════════════════════════════════════
+//  GAME ENGINE
+// ═══════════════════════════════════════════════════════════════
+let currentPuzzle = null;
+let ROWS = 0, COLS = 0;
+let cells = [];
+let activeWord   = null;
+let activeCellR  = -1;
+let activeCellC  = -1;
+let gameComplete = false;
+
+// ── Load a puzzle ────────────────────────────────────────
+function loadPuzzle(puzzle) {
+  currentPuzzle = puzzle;
+  gameComplete  = false;
+  activeWord    = null;
+  activeCellR   = -1;
+  activeCellC   = -1;
+
+  // Derive grid dimensions from word extents
+  ROWS = 0; COLS = 0;
+  puzzle.words.forEach(w => {
+    const len = w.answer.length;
+    const maxR = w.dir === 'across' ? w.row + 1       : w.row + len;
+    const maxC = w.dir === 'across' ? w.col + len     : w.col + 1;
+    if (maxR > ROWS) ROWS = maxR;
+    if (maxC > COLS) COLS = maxC;
+  });
+
+  buildCells(puzzle);
+  sizeCells();
+  renderGrid();
+  renderClues();
+  selectWord(puzzle.words[0].id, puzzle.words[0].dir);
+  document.removeEventListener('keydown', onPhysicalKey);
+  document.addEventListener('keydown', onPhysicalKey);
+}
+
+// ── Compute cell pixel size to fit viewport ──────────────
+function sizeCells() {
+  const maxW    = Math.min(window.innerWidth - 24, 500);
+  const cellPx  = Math.min(46, Math.floor((maxW - (COLS - 1) * 3) / COLS));
+  document.getElementById('crossword-grid').style.setProperty('--cell', cellPx + 'px');
+}
+
+// ── Build cell data model ────────────────────────────────
+function buildCells(puzzle) {
+  cells = Array.from({ length: ROWS }, () => Array(COLS).fill(null));
+
+  puzzle.words.forEach(w => {
+    [...w.answer].forEach((letter, i) => {
+      const r = w.dir === 'across' ? w.row     : w.row + i;
+      const c = w.dir === 'across' ? w.col + i : w.col;
+      if (!cells[r][c]) cells[r][c] = { letter, input:'', correct:null, revealed:false, clueNum:null };
+      if (w.dir === 'across') cells[r][c].wordAcross = w.id;
+      else                    cells[r][c].wordDown   = w.id;
+    });
+  });
+
+  // Assign clue numbers L→R, T→B
+  let num = 1;
+  for (let r = 0; r < ROWS; r++) {
+    for (let c = 0; c < COLS; c++) {
+      const cell = cells[r][c];
+      if (!cell) continue;
+      const sa = puzzle.words.find(w => w.dir === 'across' && w.row === r && w.col === c);
+      const sd = puzzle.words.find(w => w.dir === 'down'   && w.row === r && w.col === c);
+      if (sa || sd) {
+        cell.clueNum = num;
+        if (sa) sa.clueNum = num;
+        if (sd) sd.clueNum = num;
+        num++;
+      }
+    }
+  }
+}
+
+// ── Helpers ──────────────────────────────────────────────
+function isCellInWord(r, c, w) {
+  const len = w.answer.length;
+  return w.dir === 'across'
+    ? r === w.row && c >= w.col && c < w.col + len
+    : c === w.col && r >= w.row && r < w.row + len;
+}
+function isWordSolved(w) {
+  return [...w.answer].every((l, i) => {
+    const r = w.dir === 'across' ? w.row     : w.row + i;
+    const c = w.dir === 'across' ? w.col + i : w.col;
+    return cells[r]?.[c]?.input === l;
+  });
+}
+
+// ── Render grid ──────────────────────────────────────────
+function renderGrid() {
+  const grid = document.getElementById('crossword-grid');
+  grid.style.gridTemplateColumns = `repeat(${COLS}, var(--cell, 46px))`;
+  grid.innerHTML = '';
+
+  for (let r = 0; r < ROWS; r++) {
+    for (let c = 0; c < COLS; c++) {
+      const cell = cells[r][c];
+      const el   = document.createElement('div');
+
+      if (!cell) {
+        el.className = 'cw-cell empty';
+        el.style.cssText = 'width:var(--cell,46px);height:var(--cell,46px);font-size:calc(var(--cell,46px)*0.24)';
+        grid.appendChild(el);
+        continue;
+      }
+
+      el.className = 'cw-cell';
+      el.style.cssText = 'width:var(--cell,46px);height:var(--cell,46px);font-size:calc(var(--cell,46px)*0.24)';
+      el.dataset.r = r; el.dataset.c = c;
+
+      if (cell.clueNum) {
+        const n = document.createElement('span');
+        n.className = 'cell-number';
+        n.textContent = cell.clueNum;
+        el.appendChild(n);
+      }
+      if (cell.input) {
+        const t = document.createElement('span');
+        t.textContent = cell.input;
+        el.appendChild(t);
+      }
+
+      if      (cell.correct === true)  el.classList.add('correct');
+      else if (cell.correct === false) el.classList.add('wrong');
+      else if (cell.revealed)          el.classList.add('revealed');
+      else {
+        if (activeWord) {
+          const aw = currentPuzzle.words.find(w => w.id === activeWord.id);
+          if (aw && isCellInWord(r, c, aw)) el.classList.add('active-word');
+        }
+        if (r === activeCellR && c === activeCellC) {
+          el.classList.remove('active-word');
+          el.classList.add('active-cursor');
+        }
+      }
+
+      el.addEventListener('click', () => onCellClick(r, c));
+      grid.appendChild(el);
+    }
+  }
+}
+
+// ── Render clues ─────────────────────────────────────────
+function renderClues() {
+  const acrossEl = document.getElementById('clues-across');
+  const downEl   = document.getElementById('clues-down');
+  acrossEl.innerHTML = '';
+  downEl.innerHTML   = '';
+
+  currentPuzzle.words.forEach(w => {
+    const div = document.createElement('div');
+    div.className = 'clue-item'
+      + (activeWord?.id === w.id   ? ' active' : '')
+      + (isWordSolved(w)           ? ' solved' : '');
+    div.dataset.wid = w.id;
+    div.innerHTML = `<span class="clue-num">${w.clueNum}.</span>`
+                  + `<span class="clue-text">${w.clue}</span>`;
+    div.addEventListener('click', () => selectWord(w.id, w.dir));
+    (w.dir === 'across' ? acrossEl : downEl).appendChild(div);
+  });
+}
+
+// ── Selection ────────────────────────────────────────────
+function onCellClick(r, c) {
+  if (!cells[r][c]) return;
+  // Same cell: toggle direction
+  if (r === activeCellR && c === activeCellC && activeWord) {
+    const other    = activeWord.dir === 'across' ? 'down' : 'across';
+    const altWord  = currentPuzzle.words.find(w => w.dir === other && isCellInWord(r, c, w));
+    if (altWord) {
+      activeWord = { id: altWord.id, dir: altWord.dir };
+      renderGrid(); renderClues(); focusHidden(); return;
+    }
+  }
+  // Prefer current direction
+  let w = activeWord
+    ? currentPuzzle.words.find(ww => ww.dir === activeWord.dir && isCellInWord(r, c, ww))
+    : null;
+  if (!w) w = currentPuzzle.words.find(ww => isCellInWord(r, c, ww));
+  if (!w) return;
+
+  activeWord  = { id: w.id, dir: w.dir };
+  activeCellR = r; activeCellC = c;
+  renderGrid(); renderClues(); focusHidden();
+}
+
+function selectWord(id, dir) {
+  const w = currentPuzzle.words.find(w => w.id === id);
+  if (!w) return;
+  activeWord = { id, dir };
+  // Jump to first empty cell in word, else start
+  activeCellR = w.row; activeCellC = w.col;
+  for (let i = 0; i < w.answer.length; i++) {
+    const r = dir === 'across' ? w.row     : w.row + i;
+    const c = dir === 'across' ? w.col + i : w.col;
+    if (!cells[r][c]?.input) { activeCellR = r; activeCellC = c; break; }
+  }
+  renderGrid(); renderClues(); focusHidden();
+  setTimeout(() => {
+    document.querySelector(`.clue-item[data-wid="${id}"]`)
+      ?.scrollIntoView({ block:'nearest', behavior:'smooth' });
+  }, 40);
+}
+
+// ── Input ────────────────────────────────────────────────
+function focusHidden() {
+  const inp = document.getElementById('hidden-input');
+  inp.value = '';
+  inp.focus({ preventScroll: true });
+}
+
+document.getElementById('hidden-input').addEventListener('input', e => {
+  const raw = e.target.value; e.target.value = '';
+  if (!raw) return;
+  const ch = raw[raw.length - 1].toUpperCase();
+  if (isCyrillic(ch)) typeIntoCell(ch);
+});
+
+function onPhysicalKey(e) {
+  if (!activeWord) return;
+  if (e.key === 'Backspace')       { e.preventDefault(); deleteCell(); return; }
+  if (e.key === 'Tab')             { e.preventDefault(); cycleWord(e.shiftKey ? -1 : 1); return; }
+  if (e.key.startsWith('Arrow'))   { e.preventDefault(); navigateArrow(e.key); return; }
+  const ch = e.key.toUpperCase();
+  if (isCyrillic(ch)) { e.preventDefault(); typeIntoCell(ch); }
+}
+
+function typeIntoCell(ch) {
+  if (activeCellR < 0 || !activeWord) return;
+  const cell = cells[activeCellR][activeCellC];
+  if (!cell) return;
+  cell.input    = ch;
+  cell.correct  = null;
+  cell.revealed = false;
+  advance();
+  renderGrid(); renderClues();
+  if (!gameComplete) checkAllFilled();
+}
+
+function deleteCell() {
+  if (activeCellR < 0) return;
+  const cell = cells[activeCellR][activeCellC];
+  if (!cell) return;
+  if (cell.input) {
+    cell.input = ''; cell.correct = null; cell.revealed = false;
+  } else {
+    retreat();
+    const prev = cells[activeCellR][activeCellC];
+    if (prev) { prev.input = ''; prev.correct = null; prev.revealed = false; }
+  }
+  renderGrid();
+}
+
+function advance() {
+  const w = currentPuzzle.words.find(w => w.id === activeWord.id);
+  if (!w) return;
+  if (w.dir === 'across') {
+    if (activeCellC < w.col + w.answer.length - 1) activeCellC++;
+    else jumpToNextWord();
+  } else {
+    if (activeCellR < w.row + w.answer.length - 1) activeCellR++;
+    else jumpToNextWord();
+  }
+}
+
+function retreat() {
+  const w = currentPuzzle.words.find(w => w.id === activeWord.id);
+  if (!w) return;
+  if (w.dir === 'across' && activeCellC > w.col) activeCellC--;
+  if (w.dir === 'down'   && activeCellR > w.row) activeCellR--;
+}
+
+function jumpToNextWord() {
+  const idx  = currentPuzzle.words.findIndex(w => w.id === activeWord.id);
+  const next = currentPuzzle.words[(idx + 1) % currentPuzzle.words.length];
+  activeWord  = { id: next.id, dir: next.dir };
+  activeCellR = next.row; activeCellC = next.col;
+  for (let i = 0; i < next.answer.length; i++) {
+    const r = next.dir === 'across' ? next.row     : next.row + i;
+    const c = next.dir === 'across' ? next.col + i : next.col;
+    if (!cells[r][c]?.input) { activeCellR = r; activeCellC = c; break; }
+  }
+  renderClues();
+}
+
+function cycleWord(delta) {
+  const idx  = currentPuzzle.words.findIndex(w => w.id === activeWord.id);
+  const next = currentPuzzle.words[((idx + delta) % currentPuzzle.words.length + currentPuzzle.words.length) % currentPuzzle.words.length];
+  selectWord(next.id, next.dir);
+}
+
+function navigateArrow(key) {
+  let r = activeCellR, c = activeCellC;
+  if (key === 'ArrowRight') c++;
+  if (key === 'ArrowLeft')  c--;
+  if (key === 'ArrowDown')  r++;
+  if (key === 'ArrowUp')    r--;
+  if (r < 0 || r >= ROWS || c < 0 || c >= COLS || !cells[r][c]) return;
+  activeCellR = r; activeCellC = c;
+  const w = currentPuzzle.words.find(w => isCellInWord(r, c, w) && w.dir === activeWord.dir)
+         || currentPuzzle.words.find(w => isCellInWord(r, c, w));
+  if (w) activeWord = { id: w.id, dir: w.dir };
+  renderGrid(); renderClues();
+}
+
+// ── Check / Reset / Reveal ───────────────────────────────
+document.getElementById('btn-check').addEventListener('click', () => {
+  let checked = false;
+  for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) {
+    const cell = cells[r][c];
+    if (cell?.input) { cell.correct = cell.input === cell.letter; checked = true; }
+  }
+  if (!checked) { toast('Алдин бир харып кириш керек!'); return; }
+  renderGrid(); renderClues();
+  if (currentPuzzle.words.every(isWordSolved)) winGame();
+});
+
+document.getElementById('btn-reset').addEventListener('click', () => {
+  for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) {
+    const cell = cells[r][c];
+    if (cell) { cell.input = ''; cell.correct = null; cell.revealed = false; }
+  }
+  gameComplete = false;
+  renderGrid(); renderClues();
+  toast('Тазаланди ✓');
+});
+
+document.getElementById('btn-reveal').addEventListener('click', () => {
+  // Reveal only the active word
+  const target = activeWord
+    ? currentPuzzle.words.filter(w => w.id === activeWord.id)
+    : currentPuzzle.words;
+  target.forEach(w => {
+    [...w.answer].forEach((l, i) => {
+      const r = w.dir === 'across' ? w.row     : w.row + i;
+      const c = w.dir === 'across' ? w.col + i : w.col;
+      if (cells[r][c] && !cells[r][c].correct) {
+        cells[r][c].input    = l;
+        cells[r][c].correct  = null;
+        cells[r][c].revealed = true;
+      }
+    });
+  });
+  renderGrid(); renderClues();
+  checkAllFilled();
+});
+
+// ── Completion ───────────────────────────────────────────
+function checkAllFilled() {
+  if (currentPuzzle.words.every(isWordSolved)) winGame();
+}
+
+function winGame() {
+  if (gameComplete) return;
+  gameComplete = true;
+  markSolved(currentPuzzle.id);
+  stats.recordWin();
+  stats.renderTo('s-played', 's-wins', 's-streak');
+  document.getElementById('m-title').textContent   = 'Аҗайип! 🎉';
+  document.getElementById('m-word').textContent    = currentPuzzle.title;
+  document.getElementById('m-meaning').textContent = 'Барлиқ сөзни тапти!';
+  setTimeout(openModal, 700);
+}
+
+document.getElementById('btn-new').addEventListener('click', () => {
+  closeModal();
+  showList();
+});
+
+// ── Boot ─────────────────────────────────────────────────
+showList();
+</script>
+</body>
+</html>

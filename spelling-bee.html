@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html lang="ug">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Арилар Уяси · Уйғур тили</title>
+  <link rel="stylesheet" href="shared/theme.css" />
+  <style>
+    /* ── Layout ─────────────────────────────────────── */
+    main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      width: 100%;
+      max-width: 420px;
+      padding: 0 16px 32px;
+    }
+
+    /* ── Rank bar ───────────────────────────────────── */
+    #rank-bar {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 12px 0 6px;
+    }
+    #score-num {
+      font-size: 1.4rem;
+      font-weight: 800;
+      min-width: 36px;
+    }
+    #rank-label {
+      font-size: 0.82rem;
+      font-weight: 700;
+      color: var(--yellow);
+      min-width: 90px;
+    }
+    #prog-track {
+      flex: 1;
+      height: 5px;
+      background: var(--border);
+      border-radius: 3px;
+      overflow: hidden;
+    }
+    #prog-fill {
+      height: 100%;
+      background: var(--yellow);
+      border-radius: 3px;
+      width: 0%;
+      transition: width 0.4s ease;
+    }
+
+    /* ── Word preview ───────────────────────────────── */
+    #word-preview {
+      min-height: 52px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.7rem;
+      font-weight: 800;
+      letter-spacing: 0.1em;
+      margin: 6px 0 2px;
+      width: 100%;
+      text-align: center;
+    }
+    #word-preview .req { color: var(--yellow); }
+    #word-preview .cur {
+      display: inline-block;
+      width: 2px;
+      height: 1.6rem;
+      background: var(--text);
+      animation: blink 1s step-end infinite;
+      vertical-align: middle;
+      margin-left: 1px;
+    }
+    @keyframes blink { 50% { opacity: 0; } }
+
+    #word-preview.shake {
+      animation: wShake 400ms ease;
+    }
+    @keyframes wShake {
+      0%,100% { transform: translateX(0); }
+      20%,60% { transform: translateX(-8px); }
+      40%,80% { transform: translateX(8px); }
+    }
+    #word-preview.pop {
+      animation: wPop 250ms ease;
+    }
+    @keyframes wPop {
+      0%,100% { transform: scale(1); }
+      50%     { transform: scale(1.06); }
+    }
+
+    /* ── Hive ───────────────────────────────────────── */
+    /* 2-3-2 honeycomb. Cell = 72×80px, hex = 66×72px   */
+    #hive {
+      position: relative;
+      width: 216px;
+      height: 200px;
+      margin: 8px 0 6px;
+      flex-shrink: 0;
+    }
+    .hcell {
+      position: absolute;
+      width: 66px;
+      height: 72px;
+    }
+    .hbtn {
+      width: 66px;
+      height: 72px;
+      clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+      background: var(--key-bg);
+      color: var(--text);
+      font-size: 1.45rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      border: none;
+      cursor: pointer;
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
+      touch-action: manipulation;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: filter 0.1s;
+    }
+    .hbtn.req-hex {
+      background: var(--yellow);
+      color: #111;
+    }
+    .hbtn:active { filter: brightness(0.72); }
+
+    /* ── Action row ─────────────────────────────────── */
+    #actions {
+      display: flex;
+      gap: 8px;
+      margin: 10px 0 12px;
+    }
+    .act-btn {
+      height: 46px;
+      padding: 0 18px;
+      border-radius: 23px;
+      border: 2px solid var(--border);
+      background: transparent;
+      color: var(--text);
+      font-size: 0.85rem;
+      font-weight: 700;
+      cursor: pointer;
+      touch-action: manipulation;
+      transition: border-color 0.15s, background 0.15s;
+    }
+    .act-btn:hover  { border-color: #666; }
+    .act-btn:active { background: var(--surface); }
+    .act-btn.solid  { background: var(--key-bg); border-color: transparent; }
+    .act-btn.solid:hover { background: #999; }
+
+    /* ── Found words ─────────────────────────────────── */
+    #found-wrap { width: 100%; }
+    #found-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      margin-bottom: 10px;
+    }
+    #found-head span { font-size: 0.82rem; }
+    #found-head .title { font-weight: 700; }
+    #found-head .count { color: var(--subtext); }
+    #found-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 7px;
+    }
+    .chip {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 4px 13px;
+      font-size: 0.84rem;
+      font-weight: 600;
+      cursor: default;
+    }
+    .chip.pangram { border-color: var(--yellow); color: var(--yellow); }
+
+  </style>
+</head>
+<body>
+
+<div id="toasts"></div>
+
+<header>
+  <a href="index.html" class="btn-back">← Оюнлар</a>
+  <h1>АРИЛАР УЯСИ</h1>
+  <p class="subtitle">ОТТУРИДИКИ ҺӘРПНИ ИШЛИТ 🐝</p>
+</header>
+
+<main>
+
+  <!-- Rank & progress -->
+  <div id="rank-bar">
+    <span id="score-num">0</span>
+    <span id="rank-label">Башланғуч</span>
+    <div id="prog-track"><div id="prog-fill"></div></div>
+  </div>
+
+  <!-- Typed word display -->
+  <div id="word-preview"><span class="cur"></span></div>
+
+  <!-- Honeycomb (built by JS) -->
+  <div id="hive"></div>
+
+  <!-- Controls -->
+  <div id="actions">
+    <button class="act-btn"       id="btn-del">⌫ Өш</button>
+    <button class="act-btn"       id="btn-shuf">↺ Арала</button>
+    <button class="act-btn solid" id="btn-enter">КИРИШ</button>
+  </div>
+
+  <!-- Found words -->
+  <div id="found-wrap">
+    <div id="found-head">
+      <span class="title">Тапқан сөзлирим</span>
+      <span class="count" id="found-count">0 сөз</span>
+    </div>
+    <div id="found-chips"></div>
+  </div>
+</main>
+
+<script src="shared/utils.js"></script>
+<script>
+// ═══════════════════════════════════════════════════════
+//  PUZZLES
+//  center: required letter (yellow hex, must appear in every word)
+//  outer:  6 other available letters
+//  words:  all valid words as { WORD: 'English meaning' }
+//
+//  Rules: ≥4 letters, must contain center, only hive letters,
+//         letters reusable. Pangram = uses all 7 letters (+7 pts).
+//
+//  ⚠️  PROTOTYPE — verify word lists with a native Uyghur speaker.
+//  ⚠️  Words must be Uyghur Cyrillic; run CLAUDE.md verify snippet.
+// ═══════════════════════════════════════════════════════
+const PUZZLES = [
+  {
+    center: 'А',
+    outer:  ['Р', 'М', 'Н', 'Л', 'С', 'Т'],
+    words: {
+      // 4-letter (1 pt each)
+      'АМАН': 'safe / well',
+      'ЛАЛА': 'tulip',
+      'ТАЛА': 'steppe / field',
+      'НАЛА': 'lament / complaint',
+      'НАРТ': 'Nart (epic hero)',
+      'ТАНА': 'heifer / calf',
+      'МАЛА': 'to smear / apply',
+      // 5-letter (5 pts each)
+      'АРМАН': 'dream / aspiration',
+      'САЛАМ': 'greeting / hello',
+      'МАНАТ': 'monetary unit',
+      'САМАЛ': 'light breeze',
+      'САНАТ': 'art / craft / skill',
+      'МАРАЛ': 'female deer',
+      'ТАЛАС': 'dispute / city Talas',
+      'АЛТАН': 'golden',
+      'ТАРАМ': 'branch / streak',
+      // 6-letter (6 pts each)
+      'ЛАМТАС': 'flat stone slab',
+      'САНМАН': 'census / count',
+    },
+  },
+  {
+    center: 'Е',
+    outer:  ['Т', 'И', 'К', 'Л', 'Н', 'Р'],
+    words: {
+      // 4-letter (1 pt each)
+      'ТИКЕ': 'thorn',
+      'НИКЕ': 'wedding / marriage',
+      'ТИКЕ': 'directly / straight',
+      // 5-letter (5 pts each)
+      'ТИЛЕК': 'wish / greeting',
+      'ТЕРЕК': 'poplar tree',
+      'ТИКЕН': 'thorn / spine',
+      'КЕЛИН': 'bride / daughter-in-law',
+      'НИКЕЛ': 'nickel (element)',
+      // 6-letter (6 pts each)
+      'ТИКЕНЛИ': 'thorny',
+    },
+  },
+];
+
+// ═══════════════════════════════════════════════════════
+//  RANK THRESHOLDS (fraction of max possible score)
+// ═══════════════════════════════════════════════════════
+const RANKS = [
+  { label: 'Башланғуч', frac: 0    },
+  { label: 'Яхши',      frac: 0.05 },
+  { label: 'Маң',       frac: 0.15 },
+  { label: 'Зор',       frac: 0.30 },
+  { label: 'Аҗайип',    frac: 0.50 },
+  { label: 'Данышман',  frac: 0.70 },
+  { label: 'Мелик 🏆',  frac: 1.00 },
+];
+
+// ═══════════════════════════════════════════════════════
+//  HIVE LAYOUT
+//  7 cell positions in a 2-3-2 honeycomb (cell = 72×80px).
+//  Index 3 is always the center (required) letter.
+//  Outer order: pos 0,1 = row 0; pos 2,4 = row 1 sides; pos 5,6 = row 2
+// ═══════════════════════════════════════════════════════
+const POSITIONS = [
+  { l: 36,  t: 0   }, // 0 outer
+  { l: 108, t: 0   }, // 1 outer
+  { l: 0,   t: 60  }, // 2 outer
+  { l: 72,  t: 60  }, // 3 CENTER
+  { l: 144, t: 60  }, // 4 outer
+  { l: 36,  t: 120 }, // 5 outer
+  { l: 108, t: 120 }, // 6 outer
+];
+
+// ═══════════════════════════════════════════════════════
+//  STATE
+// ═══════════════════════════════════════════════════════
+let puzzle, req, outer, allSet;
+let word  = [];
+let found = new Set();
+let score = 0, maxScore = 0;
+
+// ═══════════════════════════════════════════════════════
+//  INIT
+// ═══════════════════════════════════════════════════════
+function init() {
+  puzzle   = PUZZLES[Math.floor(Math.random() * PUZZLES.length)];
+  req      = puzzle.center;
+  outer    = [...puzzle.outer];
+  allSet   = new Set([req, ...puzzle.outer]);
+  word     = [];
+  found    = new Set();
+  score    = 0;
+  maxScore = Object.keys(puzzle.words).reduce((s, w) => s + pts(w), 0);
+
+  buildHive();
+  draw();
+  document.addEventListener('keydown', onKey);
+}
+
+// ═══════════════════════════════════════════════════════
+//  HIVE BUILD
+// ═══════════════════════════════════════════════════════
+function buildHive() {
+  const hive = document.getElementById('hive');
+  hive.innerHTML = '';
+  POSITIONS.forEach(({ l, t }, i) => {
+    const isReq  = i === 3;
+    // outer letter index: positions 0,1,2 → outer[0,1,2]; positions 4,5,6 → outer[3,4,5]
+    const letter = isReq ? req : outer[i < 3 ? i : i - 1];
+    const cell   = document.createElement('div');
+    cell.className     = 'hcell';
+    cell.style.cssText = `left:${l}px;top:${t}px`;
+    const btn = document.createElement('button');
+    btn.className   = 'hbtn' + (isReq ? ' req-hex' : '');
+    btn.textContent = letter;
+    btn.addEventListener('pointerdown', e => { e.preventDefault(); addLetter(letter); });
+    cell.appendChild(btn);
+    hive.appendChild(cell);
+  });
+}
+
+// ═══════════════════════════════════════════════════════
+//  INPUT
+// ═══════════════════════════════════════════════════════
+function onKey(e) {
+  if (e.key === 'Enter')     { submit();                return; }
+  if (e.key === 'Backspace') { del();                   return; }
+  const ch = e.key.toUpperCase();
+  if (isCyrillic(ch))        { addLetter(ch); }
+}
+function addLetter(ch) { word.push(ch); draw(); }
+function del()         { if (word.length) { word.pop(); draw(); } }
+
+// ═══════════════════════════════════════════════════════
+//  SUBMIT
+// ═══════════════════════════════════════════════════════
+function submit() {
+  const w = word.join('');
+  if (w.length < 4)                           return flash('shake'), toast('Кем дегәндә 4 һәрп болсун');
+  if (!word.includes(req))                    return flash('shake'), toast(`«${req}» һәрпи болуши шарт`);
+  if (word.some(c => !allSet.has(c)))         return flash('shake'), toast('Уядин ташқири һәрп ишлитилди');
+  if (found.has(w))                           return flash('shake'), toast('Буни алриди таптиңиз!');
+  if (!puzzle.words[w])                       return flash('shake'), toast('Бундақ сөз йоқ');
+
+  const p = pts(w), pan = isPangram(w);
+  score += p;
+  found.add(w);
+  word = [];
+  flash('pop');
+  toast(pan ? `Барлиқ һәрп! +${p} ✨` : `+${p}`);
+  draw();
+  if (found.size === Object.keys(puzzle.words).length)
+    setTimeout(() => toast('Мелик! Барлиқ сөзни таптиңиз! 🏆', 4000), 300);
+}
+
+// ═══════════════════════════════════════════════════════
+//  SCORING
+// ═══════════════════════════════════════════════════════
+function pts(w)       { return ([...w].length === 4 ? 1 : [...w].length) + (isPangram(w) ? 7 : 0); }
+function isPangram(w) { return [...allSet].every(l => w.includes(l)); }
+
+// ═══════════════════════════════════════════════════════
+//  SHUFFLE (outer hexes only)
+// ═══════════════════════════════════════════════════════
+function shuffle() {
+  for (let i = outer.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [outer[i], outer[j]] = [outer[j], outer[i]];
+  }
+  buildHive();
+}
+
+// ═══════════════════════════════════════════════════════
+//  DRAW / RENDER
+// ═══════════════════════════════════════════════════════
+function draw() {
+  // Word preview
+  const pre = document.getElementById('word-preview');
+  if (!word.length) {
+    pre.innerHTML = '<span class="cur"></span>';
+  } else {
+    pre.innerHTML = word.map(c =>
+      `<span${c === req ? ' class="req"' : ''}>${c}</span>`
+    ).join('') + '<span class="cur"></span>';
+  }
+
+  // Score + rank
+  document.getElementById('score-num').textContent = score;
+  const frac = maxScore ? score / maxScore : 0;
+  document.getElementById('prog-fill').style.width = Math.min(frac * 100, 100) + '%';
+  let rank = RANKS[0];
+  for (const r of RANKS) { if (frac >= r.frac) rank = r; }
+  document.getElementById('rank-label').textContent = rank.label;
+
+  // Found words
+  document.getElementById('found-count').textContent = found.size + ' сөз';
+  const chips = document.getElementById('found-chips');
+  chips.innerHTML = '';
+  [...found]
+    .sort((a, b) => [...b].length - [...a].length || a.localeCompare(b))
+    .forEach(w => {
+      const c = document.createElement('div');
+      c.className   = 'chip' + (isPangram(w) ? ' pangram' : '');
+      c.title       = puzzle.words[w];
+      c.textContent = w;
+      chips.appendChild(c);
+    });
+}
+
+function flash(cls) {
+  const el = document.getElementById('word-preview');
+  el.classList.remove('shake', 'pop');
+  void el.offsetWidth;
+  el.classList.add(cls);
+  el.addEventListener('animationend', () => el.classList.remove(cls), { once: true });
+}
+
+// ═══════════════════════════════════════════════════════
+//  BUTTONS
+// ═══════════════════════════════════════════════════════
+document.getElementById('btn-del').addEventListener('click',   del);
+document.getElementById('btn-shuf').addEventListener('click',  shuffle);
+document.getElementById('btn-enter').addEventListener('click', submit);
+
+init();
+</script>
+</body>
+</html>

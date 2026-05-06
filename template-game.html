@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="ug">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>GAME_TITLE · Уйғур тили</title>
+  <link rel="stylesheet" href="shared/theme.css" />
+  <style>
+    /* ── Game-specific styles only ─────────────────────
+       Dark theme variables, reset, header, modal, toast,
+       and buttons are already in shared/theme.css.
+       Only put game-specific layout/components here.
+    ─────────────────────────────────────────────────── */
+
+    /* Main game area */
+    #game-wrap {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 16px 0 8px;
+    }
+
+    /* ── Keyboard (needed for letter-guessing games) ── */
+    #keyboard {
+      width: 100%;
+      max-width: 500px;
+      padding: 4px 6px 20px;
+    }
+    .kb-row {
+      display: flex;
+      justify-content: center;
+      gap: 4px;
+      margin-bottom: 5px;
+    }
+    .key {
+      height: 54px;
+      min-width: 32px;
+      flex: 1;
+      max-width: 40px;
+      border-radius: 4px;
+      border: none;
+      background: var(--key-bg);
+      color: var(--text);
+      font-size: 0.78rem;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
+      transition: background 0.2s, color 0.2s;
+      touch-action: manipulation;
+    }
+    .key.wide { min-width: 56px; max-width: 64px; font-size: 0.7rem; }
+    .key:active { filter: brightness(0.85); }
+    .key[data-state="correct"] { background: var(--green);  color: #fff; }
+    .key[data-state="present"] { background: var(--yellow); color: #fff; }
+    .key[data-state="absent"]  { background: #3a3a3c;       color: #888; }
+
+    /* ── TODO: add your game board styles below ──────── */
+
+  </style>
+</head>
+<body>
+
+<!-- Toast container (required by utils.js toast()) -->
+<div id="toasts"></div>
+
+<!-- Header -->
+<header>
+  <a href="index.html" class="btn-back">← Оюнлар</a>
+  <h1>GAME_TITLE</h1>
+  <p class="subtitle">GAME_SUBTITLE · УЙҒУР ТИЛИ</p>
+</header>
+
+<!-- Game area — replace with your game board -->
+<div id="game-wrap">
+  <div id="game-board">
+    <!-- TODO: your game board HTML -->
+  </div>
+</div>
+
+<!-- Virtual keyboard (remove if game doesn't need it) -->
+<div id="keyboard"></div>
+
+<!-- Result modal (shared/theme.css provides .modal styles) -->
+<div id="overlay">
+  <div class="modal">
+    <div class="modal-title"  id="m-title"></div>
+    <div class="modal-word"   id="m-word"></div>
+    <div class="modal-meaning" id="m-meaning"></div>
+    <div class="modal-stats">
+      <div class="stat"><span class="stat-n" id="s-played">0</span><span class="stat-l">Барлиқ оюн</span></div>
+      <div class="stat"><span class="stat-n" id="s-wins">0</span>  <span class="stat-l">Утуш</span></div>
+      <div class="stat"><span class="stat-n" id="s-streak">0</span><span class="stat-l">Кетма-кет</span></div>
+    </div>
+    <button class="btn-primary" id="btn-new">Йеңи оюн ▶</button>
+  </div>
+</div>
+
+<!-- Shared utilities: toast(), Stats, buildKeyboard(), animOnce(), isCyrillic() -->
+<script src="shared/utils.js"></script>
+<script>
+// ═══════════════════════════════════════════════════════
+//  GAME DATA
+//  ⚠️  All words must be exactly 5 Uyghur Cyrillic characters.
+//  ⚠️  Use English for meanings.
+//  ⚠️  Verify with the node snippet in CLAUDE.md before shipping.
+//  ⚠️  No Latin characters — especially H vs Cyrillic Һ (U+04BA).
+// ═══════════════════════════════════════════════════════
+const WORDS = [
+  // ['СӨЗҮМ', 'meaning in English'],
+];
+
+// ═══════════════════════════════════════════════════════
+//  WIN MESSAGES  (Uyghur Cyrillic — see CLAUDE.md table)
+// ═══════════════════════════════════════════════════════
+const WIN_MSGS = ['Аҗайип! 🎉', 'Зор! 🌟', 'Яхши! 👏', 'Тоғра! ✅', 'Камаль! 💪', 'Болиду! 😊'];
+
+// ═══════════════════════════════════════════════════════
+//  STATS  (change 'game-key' to a unique string per game)
+// ═══════════════════════════════════════════════════════
+const stats = new Stats('game-key');
+
+// ═══════════════════════════════════════════════════════
+//  GAME STATE
+// ═══════════════════════════════════════════════════════
+let target, meaning, gameOver;
+
+// ═══════════════════════════════════════════════════════
+//  INIT
+// ═══════════════════════════════════════════════════════
+function init() {
+  const pick = WORDS[Math.floor(Math.random() * WORDS.length)];
+  target   = pick[0];
+  meaning  = pick[1];
+  gameOver = false;
+
+  // TODO: reset your game board visuals here
+
+  // Build virtual keyboard (remove if not needed)
+  const kb = buildKeyboard(handleKey);
+
+  document.addEventListener('keydown', onPhysicalKey);
+}
+
+// ═══════════════════════════════════════════════════════
+//  INPUT
+// ═══════════════════════════════════════════════════════
+function onPhysicalKey(e) {
+  if (gameOver) return;
+  if (e.key === 'Enter')     { handleKey('ENTER');   return; }
+  if (e.key === 'Backspace') { handleKey('⌫');       return; }
+  const ch = e.key.toUpperCase();
+  if (isCyrillic(ch))        { handleKey(ch); }
+}
+
+function handleKey(k) {
+  if (gameOver) return;
+  if (k === '⌫')       { /* TODO: delete */ }
+  else if (k === 'ENTER') { /* TODO: submit */ }
+  else                    { /* TODO: add letter */ }
+}
+
+// ═══════════════════════════════════════════════════════
+//  END GAME
+// ═══════════════════════════════════════════════════════
+function endGame(won, usedRows = 0) {
+  gameOver = true;
+  document.removeEventListener('keydown', onPhysicalKey);
+
+  if (won) { stats.recordWin();  }
+  else     { stats.recordLoss(); }
+  stats.renderTo('s-played', 's-wins', 's-streak');
+
+  document.getElementById('m-title').textContent   = won ? WIN_MSGS[Math.min(usedRows - 1, WIN_MSGS.length - 1)] : 'Болмиди 😔';
+  document.getElementById('m-word').textContent    = target;
+  document.getElementById('m-meaning').textContent = meaning;
+
+  setTimeout(openModal, 1600);
+}
+
+// ═══════════════════════════════════════════════════════
+//  NEW GAME BUTTON
+// ═══════════════════════════════════════════════════════
+document.getElementById('btn-new').addEventListener('click', () => {
+  closeModal();
+  document.removeEventListener('keydown', onPhysicalKey);
+  init();
+});
+
+// ── Start ──
+init();
+</script>
+</body>
+</html>
