@@ -74,65 +74,179 @@ function animOnce(el, cls) {
   el.addEventListener('animationend', () => el.classList.remove(cls), { once: true });
 }
 
-/* ── Uyghur Cyrillic keyboard rows ─────────────────────
-   Standard layout used across all games that need a virtual keyboard.
-   Import this constant instead of re-typing it.
+/* ── Back-button smooth exit ────────────────────────────
+   Intercepts .btn-back clicks, fades the page out, then navigates.
+   Registered immediately (not inside DOMContentLoaded) so it works
+   whether utils.js is loaded in <head> or at the bottom of <body>.
    ──────────────────────────────────────────────────── */
-const UG_KEYBOARD_ROWS = [
-  ['Й','Ц','У','Ү','К','Қ','Е','Н','Ң','Г','Ғ'],
-  ['Ш','А','Ә','В','П','Р','О','Ө','Л','Д','Ж','Х'],
-  ['Ф','Я','Ч','С','М','И','Т','Б','Ю','Э','Ы','Ь','Һ','З'],
-  ['ENTER', '⌫'],
-];
+function _initBackButtons() {
+  document.querySelectorAll('.btn-back').forEach(btn => {
+    if (btn.dataset.backBound) return;           // prevent double-binding
+    btn.dataset.backBound = '1';
+    btn.addEventListener('click', e => {
+      e.preventDefault();
+      const href = btn.getAttribute('href');
+      document.body.style.transition = 'opacity 0.18s ease';
+      document.body.style.opacity = '0';
+      setTimeout(() => { window.location.href = href; }, 180);
+    });
+  });
+}
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', _initBackButtons);
+} else {
+  _initBackButtons(); // DOM already ready (utils.js loaded at bottom of body)
+}
 
-/* ── buildKeyboard ──────────────────────────────────────
-   Renders a virtual Cyrillic keyboard into #keyboard.
-   onKey(letter) is called on every keypress.
-   enterLabel defaults to 'КИРИШ'.
+/* ── UyghurKeyboard ─────────────────────────────────────
+   Supplemental keyboard strip for Uyghur Cyrillic input.
+   Shows the 8 letters absent from standard Russian keyboards
+   (Ә Ғ Қ Ң Ө Ү Һ Җ), plus ⌫ and (optionally) КИРИШ.
+   Also manages a ghost <input> for mobile native keyboard capture.
 
-   Returns an object with:
-     setLetterState(letter, state)  — 'correct'|'present'|'absent'
-     reset()                        — clear all states
+   CSS lives in shared/theme.css (.ug-* classes).
 
    Usage:
-     const kb = buildKeyboard(letter => handleKey(letter));
-     kb.setLetterState('А', 'correct');
+     const kb = new UyghurKeyboard({
+       onLetter: ch => handleKey(ch),   // required
+       onDelete: ()  => handleKey('⌫'), // required
+       onEnter:  ()  => submitGuess(),  // optional — shows КИРИШ if provided
+     });
+     kb.mount(document.getElementById('keyboard'));
+
+     // Color tracking (Wordle-style, priority: correct > present > absent):
+     kb.setKeyState('Ғ', 'correct');   // state: 'correct'|'present'|'absent'
+     kb.resetKeyStates();              // call on new game
+
+     // Focus ghost input (Crossword — call after selecting a cell):
+     kb.focus();
    ──────────────────────────────────────────────────── */
-function buildKeyboard(onKey, enterLabel = 'КИРИШ') {
-  const container = document.getElementById('keyboard');
-  if (!container) { console.warn('buildKeyboard(): no #keyboard element'); return; }
-  container.innerHTML = '';
+const UG_SPECIAL_LETTERS = ['Ә','Ғ','Қ','Ң','Ө','Ү','Һ','Җ'];
+const _KB_PRIORITY = { correct: 3, present: 2, absent: 1 };
 
-  const keyEls = {}; // letter → button element
-  const STATE_PRIORITY = { correct: 3, present: 2, absent: 1 };
+class UyghurKeyboard {
+  constructor({ onLetter, onDelete, onEnter } = {}) {
+    this._onLetter = onLetter;
+    this._onDelete = onDelete;
+    this._onEnter  = onEnter;   // undefined/null → no КИРИШ button
+    this._keyEls   = {};        // letter → <button>
+    this._ghost    = null;
+    this._boundOnInput = null;
+  }
 
-  UG_KEYBOARD_ROWS.forEach(row => {
-    const div = document.createElement('div');
-    div.className = 'kb-row';
-    row.forEach(k => {
+  /** Build and insert the keyboard UI into `container` (Element or CSS selector). */
+  mount(container) {
+    if (typeof container === 'string') container = document.querySelector(container);
+    if (!container) { console.warn('UyghurKeyboard.mount(): container not found'); return; }
+    container.innerHTML = '';
+    this._keyEls = {};
+
+    // ── Ghost input (off-screen; captures native keyboard on mobile) ──
+    let ghost = document.getElementById('ug-ghost-input');
+    if (!ghost) {
+      ghost = document.createElement('input');
+      ghost.id = 'ug-ghost-input';
+      ghost.setAttribute('type',            'text');
+      ghost.setAttribute('inputmode',       'text');
+      ghost.setAttribute('autocomplete',    'off');
+      ghost.setAttribute('autocorrect',     'off');
+      ghost.setAttribute('autocapitalize',  'characters');
+      ghost.setAttribute('spellcheck',      'false');
+      ghost.setAttribute('style',
+        'position:fixed;top:-120px;left:-120px;width:1px;height:1px;' +
+        'opacity:0;border:none;outline:none;font-size:16px;pointer-events:none');
+      document.body.appendChild(ghost);
+    }
+    this._ghost = ghost;
+    // Re-bind so a second mount() call works correctly
+    if (this._boundOnInput) ghost.removeEventListener('input', this._boundOnInput);
+    this._boundOnInput = this._onGhostInput.bind(this);
+    ghost.addEventListener('input', this._boundOnInput);
+
+    // ── Hint text (desktop) ────────────────────────────
+    const hint = document.createElement('p');
+    hint.className   = 'ug-kb-hint';
+    hint.textContent = '⌨️  Тастатурадин язиңиз';
+    container.appendChild(hint);
+
+    // ── Key strip ─────────────────────────────────────
+    const row = document.createElement('div');
+    row.className = 'ug-kb-row';
+    const keys = this._onEnter
+      ? [...UG_SPECIAL_LETTERS, '⌫', 'КИРИШ']
+      : [...UG_SPECIAL_LETTERS, '⌫'];
+
+    keys.forEach(k => {
+      const isAction = k === '⌫' || k === 'КИРИШ';
       const btn = document.createElement('button');
-      const isWide = k === 'ENTER' || k === '⌫';
-      btn.className   = 'key' + (isWide ? ' wide' : '');
-      btn.textContent = k === 'ENTER' ? enterLabel : k;
+      btn.type      = 'button';
+      btn.className = 'ug-key' + (isAction ? ' wide' : '');
+      btn.textContent = k;
       btn.dataset.key = k;
-      btn.addEventListener('pointerdown', e => { e.preventDefault(); onKey(k); });
-      div.appendChild(btn);
-      if (!isWide) keyEls[k] = btn;
+      btn.addEventListener('pointerdown', e => {
+        e.preventDefault();
+        if      (k === 'КИРИШ') this._onEnter?.();
+        else if (k === '⌫')    this._onDelete?.();
+        else                    this._onLetter?.(k);
+      });
+      row.appendChild(btn);
+      if (!isAction) this._keyEls[k] = btn;
     });
-    container.appendChild(div);
-  });
+    container.appendChild(row);
 
-  return {
-    setLetterState(letter, state) {
-      const btn = keyEls[letter];
-      if (!btn) return;
-      const cur = btn.dataset.state;
-      if (!cur || STATE_PRIORITY[state] > STATE_PRIORITY[cur]) {
-        btn.dataset.state = state;
-      }
-    },
-    reset() {
-      Object.values(keyEls).forEach(btn => delete btn.dataset.state);
-    },
-  };
+    // ── Tap-to-type button (shown on touch devices via CSS) ──
+    const tapBtn = document.createElement('button');
+    tapBtn.type        = 'button';
+    tapBtn.className   = 'ug-btn-tap-type';
+    tapBtn.textContent = '⌨️  Тастатура';
+    tapBtn.addEventListener('click', () => this.focus());
+    container.appendChild(tapBtn);
+  }
+
+  _onGhostInput() {
+    const val = this._ghost.value;
+    this._ghost.value = '';
+    for (const rawCh of val) {
+      const ch = rawCh.toUpperCase();
+      if (isCyrillic(ch)) this._onLetter?.(ch);
+    }
+  }
+
+  /** Focus the ghost input to open the native keyboard on mobile. */
+  focus() {
+    if (!this._ghost) return;
+    this._ghost.style.pointerEvents = 'auto';
+    this._ghost.focus({ preventScroll: true });
+    this._ghost.value = '';
+    this._ghost.style.pointerEvents = 'none';
+  }
+
+  /**
+   * Set the color state for a special-letter key.
+   * Uses priority: correct (3) > present (2) > absent (1) — never downgrade.
+   * @param {string} letter  - one of UG_SPECIAL_LETTERS
+   * @param {string} state   - 'correct' | 'present' | 'absent'
+   */
+  setKeyState(letter, state) {
+    const btn = this._keyEls[letter];
+    if (!btn) return;
+    const cur = btn.dataset.state;
+    if (!cur || (_KB_PRIORITY[state] ?? 0) > (_KB_PRIORITY[cur] ?? 0)) {
+      btn.dataset.state = state;
+    }
+  }
+
+  /** Clear all key color states — call at the start of a new game. */
+  resetKeyStates() {
+    Object.values(this._keyEls).forEach(btn => { btn.dataset.state = ''; });
+  }
+
+  /** Remove the ghost input and unbind its listener. */
+  destroy() {
+    if (this._ghost && this._boundOnInput) {
+      this._ghost.removeEventListener('input', this._boundOnInput);
+      this._ghost.remove();
+      this._ghost = null;
+    }
+  }
 }
