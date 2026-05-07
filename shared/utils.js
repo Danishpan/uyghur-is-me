@@ -76,9 +76,13 @@ function animOnce(el, cls) {
 
 /* ── Back-button smooth exit ────────────────────────────
    Intercepts .btn-back clicks, fades the page out, then navigates.
-   Registered immediately (not inside DOMContentLoaded) so it works
-   whether utils.js is loaded in <head> or at the bottom of <body>.
+   Also resets opacity on bfcache restore (back button returns a frozen page).
    ──────────────────────────────────────────────────── */
+window.addEventListener('pageshow', () => {
+  document.body.style.transition = '';
+  document.body.style.opacity = '1';
+});
+
 function _initBackButtons() {
   document.querySelectorAll('.btn-back').forEach(btn => {
     if (btn.dataset.backBound) return;           // prevent double-binding
