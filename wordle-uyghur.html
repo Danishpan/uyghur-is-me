@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <title>Вордли · Уйғур тили</title>
-  <link rel="stylesheet" href="shared/theme.css" />
+  <link rel="stylesheet" href="shared/theme.css?v=3" />
   <style>
     /* ── Wordle-specific variables ─────────────────────── */
     :root {
@@ -119,7 +119,7 @@
   </div>
 </div>
 
-<script src="shared/utils.js"></script>
+<script src="shared/utils.js?v=3"></script>
 <script>
 // ═══════════════════════════════════════════════════════
 //  WORD LIST
@@ -378,19 +378,7 @@ document.getElementById('btn-new').addEventListener('click', () => {
 // ── Start ──
 init();
 
-// ── Back-button exit + bfcache reset ──
-window.addEventListener('pageshow', () => {
-  document.body.style.transition = '';
-  document.body.style.opacity = '1';
-});
-document.querySelectorAll('.btn-back').forEach(btn => {
-  btn.addEventListener('click', e => {
-    e.preventDefault();
-    document.body.style.transition = 'opacity 0.18s ease';
-    document.body.style.opacity = '0';
-    setTimeout(() => { window.location.href = btn.getAttribute('href'); }, 180);
-  });
-});
+// Back-button behaviour is handled by shared/utils.js (_initBackButtons)
 </script>
 </body>
 </html>
