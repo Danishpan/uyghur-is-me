@@ -377,6 +377,20 @@ document.getElementById('btn-new').addEventListener('click', () => {
 
 // ── Start ──
 init();
+
+// ── Back-button exit + bfcache reset ──
+window.addEventListener('pageshow', () => {
+  document.body.style.transition = '';
+  document.body.style.opacity = '1';
+});
+document.querySelectorAll('.btn-back').forEach(btn => {
+  btn.addEventListener('click', e => {
+    e.preventDefault();
+    document.body.style.transition = 'opacity 0.18s ease';
+    document.body.style.opacity = '0';
+    setTimeout(() => { window.location.href = btn.getAttribute('href'); }, 180);
+  });
+});
 </script>
 </body>
 </html>
