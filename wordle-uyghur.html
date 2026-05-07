@@ -4,7 +4,6 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <title>Вордли · Уйғур тили</title>
-  <!-- Fonts + shared theme (variables, reset, body, header, back button, toasts, modal) -->
   <link rel="stylesheet" href="shared/theme.css" />
   <style>
     /* ── Wordle-specific variables ─────────────────────── */
@@ -50,30 +49,26 @@
     .tile[data-state="absent"]  { background: var(--gray);   border-color: var(--gray);   color: #fff; }
 
     /* ── Tile animations ───────────────────────────────── */
-    .tile.pop {
-      animation: pop 80ms ease-in-out;
-    }
+    .tile.pop   { animation: pop   80ms  ease-in-out; }
+    .tile.shake { animation: shake 500ms ease; }
+    .tile.flip  { animation: flip  500ms ease; }
+    .tile.bounce{ animation: bounce 600ms ease; }
+
     @keyframes pop {
       0%   { transform: scale(1); }
       50%  { transform: scale(1.13); }
       100% { transform: scale(1); }
     }
-
-    .tile.shake { animation: shake 500ms ease; }
     @keyframes shake {
-      0%,100% { transform: translateX(0); }
-      15%,45%,75% { transform: translateX(-5px); }
-      30%,60%,90% { transform: translateX(5px); }
+      0%,100%        { transform: translateX(0); }
+      15%,45%,75%    { transform: translateX(-5px); }
+      30%,60%,90%    { transform: translateX(5px); }
     }
-
-    .tile.flip { animation: flip 500ms ease; }
     @keyframes flip {
       0%   { transform: scaleY(1); }
       50%  { transform: scaleY(0.01); }
       100% { transform: scaleY(1); }
     }
-
-    .tile.bounce { animation: bounce 600ms ease; }
     @keyframes bounce {
       0%,20%  { transform: translateY(0); }
       40%     { transform: translateY(-22px); }
@@ -83,57 +78,11 @@
       100%    { transform: translateY(0); }
     }
 
-    /* ── Keyboard ──────────────────────────────────────── */
-    #keyboard {
-      width: 100%;
-      max-width: 500px;
-      padding: 4px 4px 16px;
-    }
-    .kb-row {
-      display: flex;
-      justify-content: center;
-      gap: clamp(2px, 0.7vw, 5px);
-      margin-bottom: clamp(3px, 0.8vw, 6px);
-    }
-    .key {
-      height: clamp(42px, 12.5vw, 56px);
-      min-width: 0;
-      flex: 1;
-      max-width: 44px;
-      padding: 0;
-      border-radius: 4px;
-      border: none;
-      background: var(--key-bg);
-      color: var(--text);
-      font-size: clamp(0.6rem, 2.5vw, 0.78rem);
-      font-weight: 700;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      user-select: none;
-      -webkit-tap-highlight-color: transparent;
-      transition: background 0.2s, color 0.2s;
-      touch-action: manipulation;
-    }
-    .key.wide {
-      flex: 1.7;
-      max-width: 72px;
-      font-size: clamp(0.52rem, 1.9vw, 0.7rem);
-      letter-spacing: 0.02em;
-    }
-    .key:active { filter: brightness(0.85); }
-
-    .key[data-state="correct"] { background: var(--green);  color: #fff; }
-    .key[data-state="present"] { background: var(--yellow); color: #fff; }
-    .key[data-state="absent"]  { background: #3a3a3c;       color: #888; }
-
-    /* ── Responsive tweaks (wordle-specific) ──────────── */
+    /* ── Wordle responsive tweaks ──────────────────────── */
     @media (max-height: 680px) {
       :root { --tile: 48px; }
-      .key { height: 40px; }
       #board-wrap { padding: 10px 0 4px; }
-      #keyboard { padding-bottom: 8px; }
+      #keyboard   { padding-bottom: 10px; }
     }
     @media (max-width: 380px) {
       :root { --tile: clamp(44px, 13vw, 52px); }
@@ -170,13 +119,14 @@
   </div>
 </div>
 
+<script src="shared/utils.js"></script>
 <script>
 // ═══════════════════════════════════════════════════════
 //  WORD LIST
 //  5-letter Uyghur words in Cyrillic script.
-//  Format: ['WORD', 'meaning in Russian/Kazakh context']
-//  ⚠️  PROTOTYPE — please verify with a native Uyghur speaker
-//      before public release and expand to a full dictionary.
+//  Format: ['WORD', 'English meaning']
+//  ⚠️  PROTOTYPE — verify with a native Uyghur speaker
+//      before public release; expand to a full dictionary.
 // ═══════════════════════════════════════════════════════
 const WORDS = [
   ['КИТАП', 'book'],
@@ -206,20 +156,7 @@ const WORDS = [
   ['ЙОЛУМ', 'my road'],
 ];
 
-// Valid guess set — same as answer words for now.
-// TODO: replace with a full Uyghur Cyrillic dictionary.
 const VALID = new Set(WORDS.map(w => w[0]));
-
-// ═══════════════════════════════════════════════════════
-//  KEYBOARD LAYOUT
-// ═══════════════════════════════════════════════════════
-const KB = [
-  ['Й','Ц','У','Ү','К','Қ','Е','Н','Ң','Г','Ғ'],
-  ['Ш','А','Ә','В','П','Р','О','Ө','Л','Д','Ж'],
-  ['Ф','Я','Ч','С','М','И','Т','Б','Ю','Э','Ы'],
-  ['Х','Ь','Ъ','Щ','З','Ё','Ю','Ь','Х','Һ'],
-  ['ENTER','⌫'],
-];
 
 // ═══════════════════════════════════════════════════════
 //  CONSTANTS
@@ -232,23 +169,34 @@ const FLIP_MS = 500, FLIP_STAGGER = 320;
 // ═══════════════════════════════════════════════════════
 let target, meaning, row, col, guess, over;
 let stats = JSON.parse(localStorage.getItem('wy-stats') || '{"played":0,"wins":0,"streak":0}');
+const tiles = [];  // tiles[r][c] = DOM element
 
-const tiles   = [];    // tiles[r][c] = DOM element
-const keyEls  = {};    // keyEls['А'] = button element
+// ═══════════════════════════════════════════════════════
+//  KEYBOARD (shared module from utils.js)
+// ═══════════════════════════════════════════════════════
+const kb = new UyghurKeyboard({
+  onLetter: ch => handleKey(ch),
+  onDelete: ()  => handleKey('⌫'),
+  onEnter:  ()  => handleKey('ENTER'),
+});
+kb.mount(document.getElementById('keyboard'));
+
+// Tap the board on mobile → open native keyboard
+document.getElementById('board-wrap').addEventListener('click', () => kb.focus());
 
 // ═══════════════════════════════════════════════════════
 //  INIT
 // ═══════════════════════════════════════════════════════
 function init() {
-  const pick    = WORDS[Math.floor(Math.random() * WORDS.length)];
-  target        = pick[0];
-  meaning       = pick[1];
-  row = col     = 0;
-  guess         = [];
-  over          = false;
+  const pick = WORDS[Math.floor(Math.random() * WORDS.length)];
+  target  = pick[0];
+  meaning = pick[1];
+  row = col = 0;
+  guess = [];
+  over  = false;
 
   buildBoard();
-  buildKeyboard();
+  kb.resetKeyStates();
   document.addEventListener('keydown', onKey);
 }
 
@@ -267,35 +215,6 @@ function buildBoard() {
   }
 }
 
-function buildKeyboard() {
-  const kb = document.getElementById('keyboard');
-  kb.innerHTML = '';
-  Object.keys(keyEls).forEach(k => delete keyEls[k]);
-
-  // Use only 3 content rows + function row for cleaner look
-  const rows = [
-    ['Й','Ц','У','Ү','К','Қ','Е','Н','Ң','Г','Ғ'],
-    ['Ш','А','Ә','В','П','Р','О','Ө','Л','Д','Ж','Х'],
-    ['Ф','Я','Ч','С','М','И','Т','Б','Ю','Э','Ы','Ь','Һ','З'],
-    ['ENTER', '⌫'],
-  ];
-
-  rows.forEach(rowKeys => {
-    const div = document.createElement('div');
-    div.className = 'kb-row';
-    rowKeys.forEach(k => {
-      const btn = document.createElement('button');
-      btn.className = 'key' + (k === 'ENTER' || k === '⌫' ? ' wide' : '');
-      btn.textContent = k === 'ENTER' ? 'КИРИШ' : k;
-      btn.dataset.key = k;
-      btn.addEventListener('pointerdown', e => { e.preventDefault(); handleKey(k); });
-      div.appendChild(btn);
-      if (k !== 'ENTER' && k !== '⌫') keyEls[k] = btn;
-    });
-    kb.appendChild(div);
-  });
-}
-
 // ═══════════════════════════════════════════════════════
 //  INPUT
 // ═══════════════════════════════════════════════════════
@@ -307,22 +226,17 @@ function onKey(e) {
   if (isCyrillic(ch))        { handleKey(ch); }
 }
 
-// Match any single Cyrillic character (standard + Uyghur extensions)
-function isCyrillic(ch) {
-  return ch.length === 1 && /[Ѐ-ӿҰұ]/u.test(ch);
-}
-
 function handleKey(k) {
   if (over) return;
-  if (k === '⌫')    { deleteLetter(); }
-  else if (k === 'ENTER') { submitGuess(); }
-  else               { addLetter(k); }
+  if (k === '⌫')       deleteLetter();
+  else if (k === 'ENTER') submitGuess();
+  else                    addLetter(k);
 }
 
 function addLetter(ch) {
   if (col >= COLS) return;
   const t = tiles[row][col];
-  t.textContent   = ch;
+  t.textContent    = ch;
   t.dataset.letter = ch;
   animOnce(t, 'pop');
   guess.push(ch);
@@ -349,19 +263,15 @@ function submitGuess() {
   }
   const word = guess.join('');
 
-  // Soft dictionary check — only warn, don't block (prototype UX)
-  // In production: uncomment the block below for strict validation
-  // if (!VALID.has(word)) {
-  //   toast('Бундақ сөз йоқ');
-  //   shakeRow(row);
-  //   return;
-  // }
+  // Soft dictionary check — warn but don't block (prototype UX).
+  // Uncomment for strict validation:
+  // if (!VALID.has(word)) { toast('Бундақ сөз йоқ'); shakeRow(row); return; }
 
-  const result = evaluate(word);
-  revealRow(row, word, result);
-
-  const won = result.every(r => r === 'correct');
+  const result     = evaluate(word);
+  const won        = result.every(r => r === 'correct');
   const currentRow = row;
+
+  revealRow(row, word, result);
 
   setTimeout(() => {
     updateKeyColors(word, result);
@@ -382,26 +292,22 @@ function submitGuess() {
 //  EVALUATION  (handles duplicate letters correctly)
 // ═══════════════════════════════════════════════════════
 function evaluate(word) {
-  const result  = Array(COLS).fill('absent');
-  const tArr    = target.split('');
-  const gArr    = word.split('');
+  const result = Array(COLS).fill('absent');
+  const tArr   = target.split('');
+  const gArr   = word.split('');
 
   // Pass 1: correct positions
   for (let i = 0; i < COLS; i++) {
     if (gArr[i] === tArr[i]) {
       result[i] = 'correct';
-      tArr[i]   = null;
-      gArr[i]   = null;
+      tArr[i] = gArr[i] = null;
     }
   }
   // Pass 2: present (wrong position)
   for (let i = 0; i < COLS; i++) {
     if (gArr[i] === null) continue;
     const idx = tArr.indexOf(gArr[i]);
-    if (idx !== -1) {
-      result[i]  = 'present';
-      tArr[idx]  = null;
-    }
+    if (idx !== -1) { result[i] = 'present'; tArr[idx] = null; }
   }
   return result;
 }
@@ -411,77 +317,39 @@ function evaluate(word) {
 // ═══════════════════════════════════════════════════════
 function revealRow(r, word, result) {
   for (let c = 0; c < COLS; c++) {
-    const t     = tiles[r][c];
-    const state = result[c];
-    const delay = c * FLIP_STAGGER;
+    const t = tiles[r][c];
     setTimeout(() => {
       t.classList.add('flip');
-      // Change colour at the invisible midpoint
-      setTimeout(() => {
-        t.dataset.state = state;
-      }, FLIP_MS / 2);
+      setTimeout(() => { t.dataset.state = result[c]; }, FLIP_MS / 2);
       t.addEventListener('animationend', () => t.classList.remove('flip'), { once: true });
-    }, delay);
+    }, c * FLIP_STAGGER);
   }
 }
 
-function shakeRow(r) {
-  for (let c = 0; c < COLS; c++) animOnce(tiles[r][c], 'shake');
-}
-
-function bounceRow(r) {
-  for (let c = 0; c < COLS; c++) {
-    setTimeout(() => animOnce(tiles[r][c], 'bounce'), c * 80);
-  }
-}
-
-function animOnce(el, cls) {
-  el.classList.remove(cls);
-  void el.offsetWidth; // reflow
-  el.classList.add(cls);
-  el.addEventListener('animationend', () => el.classList.remove(cls), { once: true });
-}
+function shakeRow(r)  { for (let c = 0; c < COLS; c++) animOnce(tiles[r][c], 'shake'); }
+function bounceRow(r) { for (let c = 0; c < COLS; c++) setTimeout(() => animOnce(tiles[r][c], 'bounce'), c * 80); }
 
 // ═══════════════════════════════════════════════════════
-//  KEYBOARD COLOUR TRACKING
+//  KEY COLOR TRACKING
+//  Delegates to UyghurKeyboard — handles the 8 special letters.
+//  Standard Cyrillic letters typed from physical keyboard are
+//  not shown in the strip, so no color tracking needed for them.
 // ═══════════════════════════════════════════════════════
-const PRIORITY = { correct: 3, present: 2, absent: 1 };
-
 function updateKeyColors(word, result) {
   for (let i = 0; i < COLS; i++) {
-    const ch  = word[i];
-    const st  = result[i];
-    const btn = keyEls[ch];
-    if (!btn) continue;
-    const cur = btn.dataset.state;
-    if (!cur || PRIORITY[st] > PRIORITY[cur]) btn.dataset.state = st;
+    kb.setKeyState(word[i], result[i]);
   }
-}
-
-// ═══════════════════════════════════════════════════════
-//  TOAST
-// ═══════════════════════════════════════════════════════
-function toast(msg, ms = 2200) {
-  const el = document.createElement('div');
-  el.className   = 'toast';
-  el.textContent = msg;
-  document.getElementById('toasts').appendChild(el);
-  setTimeout(() => el.remove(), ms);
 }
 
 // ═══════════════════════════════════════════════════════
 //  END GAME
 // ═══════════════════════════════════════════════════════
-const WIN_MSGS = [
-  'Аҗайип! 🎉', 'Зор! 🌟', 'Яхши! 👏',
-  'Тоғра! ✅', 'Камаль! 💪', 'Болиду! 😊',
-];
+const WIN_MSGS = ['Аҗайип! 🎉','Зор! 🌟','Яхши! 👏','Тоғра! ✅','Камаль! 💪','Болиду! 😊'];
 
 function endGame(won, usedRows) {
   over = true;
   document.removeEventListener('keydown', onKey);
 
-  // Update stats
   stats.played++;
   if (won) { stats.wins++; stats.streak++; }
   else     { stats.streak = 0; }

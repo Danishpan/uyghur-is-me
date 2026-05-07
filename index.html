@@ -2,7 +2,7 @@
 <html lang="ug">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <title>Уйғур оюнлири</title>
   <link rel="stylesheet" href="shared/theme.css" />
   <!-- Inter: modern geometric sans-serif, full Cyrillic support -->
@@ -52,13 +52,16 @@
     /* ─── Header ────────────────────────────────────────── */
     header {
       position: relative;
-      z-index: 1;
+      z-index: 10;
       width: 100%;
       max-width: 500px;
-      padding: 24px 16px 18px;
+      /* Push content below the device status bar */
+      padding: calc(env(safe-area-inset-top, 0px) + 24px) 16px 18px;
       text-align: center;
       border-bottom: none;
+      /* Transparent so the ambient orbs show through */
       background: transparent;
+      margin-top: calc(-1 * env(safe-area-inset-top, 0px));
     }
 
     /* Main title */
@@ -275,6 +278,28 @@
       main { padding-top: 16px; gap: 9px; }
       .game-icon { width: 44px; height: 44px; font-size: 1.7rem; }
     }
+
+    /* ─── Page transitions ──────────────────────────────── */
+    @keyframes pageFadeIn {
+      from { opacity: 0; transform: translateY(6px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    body {
+      animation: pageFadeIn 0.25s ease forwards;
+    }
+
+    /* Tapped state for mobile tap feedback */
+    .game-card.tapped {
+      transform: translateY(-3px) !important;
+      background: rgba(22,27,34,0.92) !important;
+    }
+    .game-card.tapped::after {
+      opacity: 1 !important;
+      transform: scaleY(1) !important;
+    }
+    .game-card.tapped .game-icon {
+      transform: scale(1.1) rotate(-4deg) !important;
+    }
   </style>
 </head>
 <body>
@@ -334,6 +359,26 @@
 </main>
 
 <footer>Уйғур диаспорасы үчүн ясалди 🌍</footer>
+
+<script>
+  // ── Tap animation delay for game cards ──────────────────
+  // On mobile, give the hover/press animation ~200ms to show
+  // before the browser navigates away.
+  document.querySelectorAll('.game-card').forEach(card => {
+    card.addEventListener('click', function (e) {
+      e.preventDefault();
+      const href = this.getAttribute('href');
+      this.classList.add('tapped');
+
+      // Fade page out, then navigate
+      setTimeout(() => {
+        document.body.style.transition = 'opacity 0.15s ease';
+        document.body.style.opacity = '0';
+        setTimeout(() => { window.location.href = href; }, 150);
+      }, 180);
+    });
+  });
+</script>
 
 </body>
 </html>

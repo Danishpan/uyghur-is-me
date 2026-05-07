@@ -228,12 +228,6 @@
     .btn-check { border-color: var(--green); color: var(--green); }
     .btn-check:hover { background: #152015; }
 
-    /* ── Mobile hidden input ─────────────────────────────── */
-    #hidden-input {
-      position: fixed; left: -9999px; top: 0;
-      opacity: 0; width: 1px; height: 1px;
-    }
-
     @media (max-width: 400px) {
       #crossword-grid { gap: 2px; }
       .clue-item { font-size: 0.68rem; }
@@ -279,10 +273,8 @@
     <button class="btn-action" id="btn-reset">↺ Тазала</button>
     <button class="btn-action" id="btn-reveal">👁 Ачып бақ</button>
   </div>
+  <div id="keyboard"></div>
 </div>
-
-<input id="hidden-input" type="text" autocomplete="off" autocorrect="off"
-       autocapitalize="characters" spellcheck="false" inputmode="text" />
 
 <!-- Completion modal -->
 <div id="overlay">
@@ -630,19 +622,17 @@ function selectWord(id, dir) {
   }, 40);
 }
 
-// ── Input ────────────────────────────────────────────────
-function focusHidden() {
-  const inp = document.getElementById('hidden-input');
-  inp.value = '';
-  inp.focus({ preventScroll: true });
-}
-
-document.getElementById('hidden-input').addEventListener('input', e => {
-  const raw = e.target.value; e.target.value = '';
-  if (!raw) return;
-  const ch = raw[raw.length - 1].toUpperCase();
-  if (isCyrillic(ch)) typeIntoCell(ch);
+// ── Keyboard (shared module — supplemental Uyghur letters + ghost input) ──
+const kb = new UyghurKeyboard({
+  onLetter: ch => typeIntoCell(ch),
+  onDelete: ()  => deleteCell(),
+  // No onEnter: crossword uses the ✓ Тексүр button instead
 });
+kb.mount(document.getElementById('keyboard'));
+
+// focusHidden is called throughout the game to open the native keyboard.
+// It delegates to kb.focus() which manages the shared ghost input.
+function focusHidden() { kb.focus(); }
 
 function onPhysicalKey(e) {
   if (!activeWord) return;
