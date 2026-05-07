@@ -192,10 +192,101 @@ header { position: relative; }
   transition: color 0.15s, border-color 0.15s;
   white-space: nowrap;
 }
-.btn-back:hover { color: var(--text); border-color: #666; }
+.btn-back:hover  { color: var(--text); border-color: #666; }
+.btn-back:active { color: var(--text); border-color: #888; background: rgba(255,255,255,0.06); }
+
+/* ── Page transition (fade-in on load) ──────────────── */
+@keyframes pageFadeIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+body { animation: pageFadeIn 0.22s ease forwards; }
 
 /* ── Responsive ──────────────────────────────────────── */
 @media (max-height: 680px) {
   header { padding: 10px 16px 8px; }
   header h1 { font-size: 1.4rem; }
 }
+
+/* ═══════════════════════════════════════════════════════
+   Uyghur Supplemental Keyboard  (.ug-* prefix)
+   Used by any game that needs Uyghur text input.
+   Shows the 8 Uyghur-exclusive letters absent from a
+   standard Russian/Cyrillic physical keyboard, plus ⌫
+   and (optionally) КИРИШ.
+   Managed by UyghurKeyboard in shared/utils.js.
+════════════════════════════════════════════════════════ */
+#keyboard {
+  width: 100%;
+  max-width: 480px;
+  padding: 6px 12px 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+.ug-kb-hint {
+  font-size: 0.72rem;
+  color: var(--subtext);
+  margin: 0;
+  text-align: center;
+  letter-spacing: 0.04em;
+}
+.ug-kb-row {
+  display: flex;
+  justify-content: center;
+  gap: 7px;
+  flex-wrap: wrap;
+}
+.ug-key {
+  height: 52px;
+  min-width: 44px;
+  padding: 0 6px;
+  border-radius: 6px;
+  border: none;
+  background: var(--key-bg);
+  color: var(--text);
+  font-size: 1.15rem;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  transition: background 0.2s, color 0.2s;
+  touch-action: manipulation;
+}
+.ug-key.wide {
+  min-width: 64px;
+  font-size: 0.78rem;
+  letter-spacing: 0.03em;
+}
+.ug-key:active { filter: brightness(0.82); }
+.ug-key[data-state="correct"] { background: var(--green);  color: #fff; }
+.ug-key[data-state="present"] { background: var(--yellow); color: #fff; }
+.ug-key[data-state="absent"]  { background: #3a3a3c;       color: #888; }
+
+/* Tap-to-type — touch devices only */
+.ug-btn-tap-type {
+  display: none;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 20px;
+  border-radius: 8px;
+  border: 1.5px solid var(--border);
+  background: transparent;
+  color: var(--subtext);
+  font-size: 0.82rem;
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+.ug-btn-tap-type:active { border-color: #ccc; color: #ccc; }
+
+@media (hover: none) {
+  .ug-btn-tap-type { display: flex; }
+  .ug-kb-hint      { display: none; }
+}
+@media (max-height: 680px) { .ug-key { height: 44px; } }
+@media (max-width: 380px)  { .ug-key { height: 48px; min-width: 40px; } }
