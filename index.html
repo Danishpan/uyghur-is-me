@@ -15,6 +15,8 @@
     body {
       font-family: 'Inter', 'Segoe UI', sans-serif;
       background: #090c10;
+      /* Push all content below the device status bar (time, battery, etc.) */
+      padding-top: env(safe-area-inset-top, 0px);
     }
 
     /* ─── Ambient background orbs ───────────────────────── */
@@ -52,16 +54,13 @@
     /* ─── Header ────────────────────────────────────────── */
     header {
       position: relative;
-      z-index: 10;
+      z-index: 1;
       width: 100%;
       max-width: 500px;
-      /* Push content below the device status bar */
-      padding: calc(env(safe-area-inset-top, 0px) + 24px) 16px 18px;
+      padding: 24px 16px 18px;
       text-align: center;
       border-bottom: none;
-      /* Transparent so the ambient orbs show through */
       background: transparent;
-      margin-top: calc(-1 * env(safe-area-inset-top, 0px));
     }
 
     /* Main title */
@@ -134,19 +133,7 @@
       position: relative;
       overflow: hidden;
 
-      /* stagger entrance */
-      opacity: 0;
-      transform: translateY(14px);
-      animation: cardIn 0.4s ease forwards;
-      transition: transform 0.22s ease, box-shadow 0.25s ease, border-color 0.2s ease, background 0.2s ease;
-    }
-    /* stagger delays — applied to all .game-card children of main */
-    main > .game-card:nth-of-type(1)  { animation-delay: 0.08s; }
-    main > .game-card:nth-of-type(2)  { animation-delay: 0.16s; }
-    main > .game-card:nth-of-type(3)  { animation-delay: 0.24s; }
-    main > .game-card:nth-of-type(4)  { animation-delay: 0.32s; }
-    @keyframes cardIn {
-      to { opacity: 1; transform: translateY(0); }
+      transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease, background 0.18s ease;
     }
 
     /* Shimmer sweep */
@@ -277,15 +264,6 @@
       header h1 { font-size: 1.55rem; }
       main { padding-top: 16px; gap: 9px; }
       .game-icon { width: 44px; height: 44px; font-size: 1.7rem; }
-    }
-
-    /* ─── Page transitions ──────────────────────────────── */
-    @keyframes pageFadeIn {
-      from { opacity: 0; transform: translateY(6px); }
-      to   { opacity: 1; transform: translateY(0); }
-    }
-    body {
-      animation: pageFadeIn 0.25s ease forwards;
     }
 
     /* Tapped state for mobile tap feedback */
