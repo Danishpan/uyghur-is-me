@@ -119,42 +119,15 @@
   </div>
 </div>
 
+<script src="data/wordle.js?v=3"></script>
 <script src="shared/utils.js?v=3"></script>
 <script>
 // ═══════════════════════════════════════════════════════
-//  WORD LIST
-//  5-letter Uyghur words in Cyrillic script.
-//  Format: ['WORD', 'English meaning']
-//  ⚠️  PROTOTYPE — verify with a native Uyghur speaker
-//      before public release; expand to a full dictionary.
+//  WORD LIST — loaded from data/wordle.js (encoded)
+//  Format: ['WORD', 'Meaning in Russian']
+//  Edit words in scripts/encode-data.js → re-run node scripts/encode-data.js
 // ═══════════════════════════════════════════════════════
-const WORDS = [
-  ['КИТАП', 'book'],
-  ['АРМАН', 'dream / aspiration'],
-  ['ШАМАЛ', 'wind'],
-  ['БУЛУТ', 'cloud'],
-  ['ТАВУҚ', 'chicken'],
-  ['ТУМАН', 'fog / mist'],
-  ['ТАМАҚ', 'food / throat'],
-  ['ЙИЛАН', 'snake'],
-  ['БЕЛИҚ', 'fish'],
-  ['ТОҒАЙ', 'grove / thicket'],
-  ['ШӘҺӘР', 'city'],
-  ['ЖАНАР', 'flame'],
-  ['САНАМ', 'beloved / idol'],
-  ['ЧАМАН', 'garden / meadow'],
-  ['НУРЛУ', 'radiant / bright'],
-  ['БОЛУР', 'crystal'],
-  ['НИЛУФ', 'lotus'],
-  ['ГҮЛҮМ', 'my flower'],
-  ['ДАРЬЯ', 'river'],
-  ['САДАФ', 'mother of pearl'],
-  ['КЕМЕР', 'belt'],
-  ['ЖУМАҚ', 'fist'],
-  ['НӘРСЕ', 'thing / something'],
-  ['ТОҒАМ', 'paternal uncle'],
-  ['ЙОЛУМ', 'my road'],
-];
+const WORDS = decodeGameData('wordle');
 
 const VALID = new Set(WORDS.map(w => w[0]));
 

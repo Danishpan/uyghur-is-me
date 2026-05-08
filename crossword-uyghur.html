@@ -291,61 +291,15 @@
   </div>
 </div>
 
+<script src="data/crossword.js?v=3"></script>
 <script src="shared/utils.js?v=3"></script>
 <script>
 // ═══════════════════════════════════════════════════════════════
-//  PUZZLE DEFINITIONS
-//  To add a new puzzle: push a new object to PUZZLES.
-//  Each word: { id, dir:'across'|'down', row, col, answer, clue }
-//  answer = exact Uyghur Cyrillic string, clue = Uyghur description.
-//  Verify with node snippet in CLAUDE.md before shipping.
-//
-//  Puzzle 1 layout (6 rows × 8 cols):
-//    Row 0: Т · · · · · · ·
-//    Row 1: А Р М А Н · · ·
-//    Row 2: В · · Б А Л И К
-//    Row 3: У · · · Х · · ·
-//    Row 4: Қ · · · Ш · · ·
-//    Row 5: · К И Т А П · ·
-//
-//  Puzzle 2 layout (8 rows × 7 cols):
-//    Row 0: · · А · · · ·
-//    Row 1: · · Р · · · ·
-//    Row 2: Ш А М А Л · ·
-//    Row 3: · · А Б · · ·
-//    Row 4: · · Н А Х Ш А
-//    Row 5: · Й И Л А Н ·
-//    Row 6: · · · И · · ·
-//    Row 7: · · · К · · ·
+//  PUZZLE DEFINITIONS — loaded from data/crossword.js (encoded)
+//  Format: [{ id, title, subtitle, difficulty, words:[{id,dir,row,col,answer,clue}] }]
+//  Edit puzzles in scripts/encode-data.js → re-run node scripts/encode-data.js
 // ═══════════════════════════════════════════════════════════════
-const PUZZLES = [
-  {
-    id: 'p1',
-    title: 'Жанлиқлар вә Сөзлүк',
-    subtitle: 'Animals & Vocabulary',
-    difficulty: 'easy',
-    words: [
-      { id:1, dir:'down',   row:0, col:0, answer:'ТАВУҚ', clue:'Үй қуши (жумуртқа берет)' },
-      { id:2, dir:'across', row:1, col:0, answer:'АРМАН', clue:'Тилек, үмид'               },
-      { id:3, dir:'down',   row:1, col:4, answer:'НАХША', clue:'Музыкалик әсәр'            },
-      { id:4, dir:'across', row:2, col:3, answer:'БАЛИК', clue:'Сулардики жанлиқ'          },
-      { id:5, dir:'across', row:5, col:1, answer:'КИТАП', clue:'Оқуш үчүн нәрсә'          },
-    ],
-  },
-  {
-    id: 'p2',
-    title: 'Табиат вә Тирлик',
-    subtitle: 'Nature & Life',
-    difficulty: 'medium',
-    words: [
-      { id:1, dir:'down',   row:0, col:2, answer:'АРМАН', clue:'Тилек, үмид'               },
-      { id:2, dir:'across', row:2, col:0, answer:'ШАМАЛ', clue:'Күчлүк жел'                },
-      { id:3, dir:'down',   row:3, col:3, answer:'БАЛИК', clue:'Сулардики жанлиқ'          },
-      { id:4, dir:'across', row:4, col:2, answer:'НАХША', clue:'Музыкалик әсәр'            },
-      { id:5, dir:'across', row:5, col:1, answer:'ЙИЛАН', clue:'Путсиз судалғучи жанлиқ'  },
-    ],
-  },
-];
+const PUZZLES = decodeGameData('crossword');
 
 const DIFF_LABEL = { easy:'АСАН', medium:'ОРТА', hard:'ҚИЙИН' };
 const DIFF_CLASS = { easy:'diff-easy', medium:'diff-medium', hard:'diff-hard' };

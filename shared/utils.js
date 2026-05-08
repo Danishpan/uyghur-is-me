@@ -254,3 +254,27 @@ class UyghurKeyboard {
     }
   }
 }
+
+/* ── decodeGameData ─────────────────────────────────────
+   Decodes a game data blob from window.__GAME_DATA__.
+   The blob is produced by scripts/encode-data.js:
+     JSON → UTF-8 bytes → XOR with 'уйғур' UTF-8 → base64.
+
+   Usage (after loading the matching data/*.js file):
+     const WORDS = decodeGameData('wordle');
+
+   Returns the original JS value (array/object), or []
+   if the key is missing (safe fallback so game still loads).
+   ──────────────────────────────────────────────────── */
+function decodeGameData(key) {
+  const b64 = (window.__GAME_DATA__ || {})[key];
+  if (!b64) { console.error('decodeGameData: missing key "' + key + '"'); return []; }
+  // UTF-8 bytes of the XOR key string 'уйғур'
+  const KEY = [0xD1,0x83,0xD0,0xB9,0xD2,0x93,0xD1,0x83,0xD1,0x80];
+  const raw   = atob(b64);
+  const bytes = new Uint8Array(raw.length);
+  for (let i = 0; i < raw.length; i++) bytes[i] = raw.charCodeAt(i);
+  const plain = new Uint8Array(bytes.length);
+  for (let i = 0; i < bytes.length; i++) plain[i] = bytes[i] ^ KEY[i % KEY.length];
+  return JSON.parse(new TextDecoder().decode(plain));
+}

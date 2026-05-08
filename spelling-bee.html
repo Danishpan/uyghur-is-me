@@ -226,67 +226,15 @@
   </div>
 </main>
 
+<script src="data/spelling-bee.js?v=3"></script>
 <script src="shared/utils.js?v=3"></script>
 <script>
 // ═══════════════════════════════════════════════════════
-//  PUZZLES
-//  center: required letter (yellow hex, must appear in every word)
-//  outer:  6 other available letters
-//  words:  all valid words as { WORD: 'English meaning' }
-//
-//  Rules: ≥4 letters, must contain center, only hive letters,
-//         letters reusable. Pangram = uses all 7 letters (+7 pts).
-//
-//  ⚠️  PROTOTYPE — verify word lists with a native Uyghur speaker.
-//  ⚠️  Words must be Uyghur Cyrillic; run CLAUDE.md verify snippet.
+//  PUZZLES — loaded from data/spelling-bee.js (encoded)
+//  Format: [{ center, outer:[6 letters], words:{WORD:'meaning'} }]
+//  Edit puzzles in scripts/encode-data.js → re-run node scripts/encode-data.js
 // ═══════════════════════════════════════════════════════
-const PUZZLES = [
-  {
-    center: 'А',
-    outer:  ['Р', 'М', 'Н', 'Л', 'С', 'Т'],
-    words: {
-      // 4-letter (1 pt each)
-      'АМАН': 'safe / well',
-      'ЛАЛА': 'tulip',
-      'ТАЛА': 'steppe / field',
-      'НАЛА': 'lament / complaint',
-      'НАРТ': 'Nart (epic hero)',
-      'ТАНА': 'heifer / calf',
-      'МАЛА': 'to smear / apply',
-      // 5-letter (5 pts each)
-      'АРМАН': 'dream / aspiration',
-      'САЛАМ': 'greeting / hello',
-      'МАНАТ': 'monetary unit',
-      'САМАЛ': 'light breeze',
-      'САНАТ': 'art / craft / skill',
-      'МАРАЛ': 'female deer',
-      'ТАЛАС': 'dispute / city Talas',
-      'АЛТАН': 'golden',
-      'ТАРАМ': 'branch / streak',
-      // 6-letter (6 pts each)
-      'ЛАМТАС': 'flat stone slab',
-      'САНМАН': 'census / count',
-    },
-  },
-  {
-    center: 'Е',
-    outer:  ['Т', 'И', 'К', 'Л', 'Н', 'Р'],
-    words: {
-      // 4-letter (1 pt each)
-      'ТИКЕ': 'thorn',
-      'НИКЕ': 'wedding / marriage',
-      'ТИКЕ': 'directly / straight',
-      // 5-letter (5 pts each)
-      'ТИЛЕК': 'wish / greeting',
-      'ТЕРЕК': 'poplar tree',
-      'ТИКЕН': 'thorn / spine',
-      'КЕЛИН': 'bride / daughter-in-law',
-      'НИКЕЛ': 'nickel (element)',
-      // 6-letter (6 pts each)
-      'ТИКЕНЛИ': 'thorny',
-    },
-  },
-];
+const PUZZLES = decodeGameData('spellingBee');
 
 // ═══════════════════════════════════════════════════════
 //  RANK THRESHOLDS (fraction of max possible score)

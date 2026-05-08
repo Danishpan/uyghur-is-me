@@ -232,102 +232,15 @@
 
 </div><!-- /game-wrap -->
 
+<script src="data/flashcards.js?v=3"></script>
 <script src="shared/utils.js?v=3"></script>
 <script>
 // ═══════════════════════════════════════════════════════
-//  WORD DATA
-//  ─────────────────────────────────────────────────────
-//  To add a category: push a new object to CATEGORIES.
-//  To add words:      push { ug, en } to its words[].
-//  levels: 1=Башланғуч, 2=Орта, 3=Илғар
-//  All ug strings must be Uyghur Cyrillic — no Latin!
-//  Verify with the node snippet in CLAUDE.md.
+//  WORD DATA — loaded from data/flashcards.js (encoded)
+//  Format: [{ id, level, emoji, nameUg, nameRu, words:[{ug, ru}] }]
+//  Edit categories in scripts/encode-data.js → re-run node scripts/encode-data.js
 // ═══════════════════════════════════════════════════════
-const CATEGORIES = [
-  {
-    id: 'greetings', level: 1, emoji: '👋',
-    nameUg: 'Саламлашмақ', nameEn: 'Greetings & Phrases',
-    words: [
-      { ug: 'Яхшимусиз',      en: 'Hello (formal)' },
-      { ug: 'Яхшимусән',      en: 'Hello (casual)' },
-      { ug: 'Рәхмәт',         en: 'Thank you' },
-      { ug: 'Хош кәлдиңиз',   en: 'Welcome' },
-      { ug: 'Хош',            en: 'Goodbye' },
-      { ug: 'Болиду',         en: 'OK / Alright' },
-      { ug: 'Кечурим',        en: 'Sorry / Excuse me' },
-      { ug: 'Яхши',           en: 'Good / Fine' },
-      { ug: 'Яман',           en: 'Bad' },
-      { ug: 'Ноши',           en: 'Bon appétit' },
-    ]
-  },
-  {
-    id: 'family', level: 1, emoji: '👨‍👩‍👧',
-    nameUg: 'Аилә', nameEn: 'Family & People',
-    words: [
-      { ug: 'Ата',   en: 'Father' },
-      { ug: 'Ана',   en: 'Mother' },
-      { ug: 'Оғул',  en: 'Son' },
-      { ug: 'Қиз',   en: 'Daughter / Girl' },
-      { ug: 'Аға',   en: 'Older brother' },
-      { ug: 'Апа',   en: 'Older sister' },
-      { ug: 'Бала',  en: 'Child' },
-      { ug: 'Аял',   en: 'Wife / Woman' },
-      { ug: 'Эр',    en: 'Husband / Man' },
-      { ug: 'Буви',  en: 'Grandmother' },
-      { ug: 'Бова',  en: 'Grandfather' },
-    ]
-  },
-  {
-    id: 'food', level: 1, emoji: '🍽️',
-    nameUg: 'Тамақ', nameEn: 'Food & Drink',
-    words: [
-      { ug: 'Нан',    en: 'Bread' },
-      { ug: 'Чай',    en: 'Tea' },
-      { ug: 'Су',     en: 'Water' },
-      { ug: 'Гөш',    en: 'Meat' },
-      { ug: 'Палав',  en: 'Plov (rice dish)' },
-      { ug: 'Яблуқ',  en: 'Apple' },
-      { ug: 'Үзүм',   en: 'Grape' },
-      { ug: 'Тухум',  en: 'Egg' },
-      { ug: 'Тамақ',  en: 'Food / Meal' },
-      { ug: 'Шорпа',  en: 'Broth / Soup' },
-      { ug: 'Лагман', en: 'Lagman noodles' },
-    ]
-  },
-  {
-    id: 'numbers', level: 1, emoji: '🔢',
-    nameUg: 'Санлар вә Рәңләр', nameEn: 'Numbers & Colors',
-    words: [
-      { ug: 'Бир',     en: 'One (1)' },
-      { ug: 'Икки',    en: 'Two (2)' },
-      { ug: 'Үч',      en: 'Three (3)' },
-      { ug: 'Төт',     en: 'Four (4)' },
-      { ug: 'Бәш',     en: 'Five (5)' },
-      { ug: 'Алтә',    en: 'Six (6)' },
-      { ug: 'Йәттә',   en: 'Seven (7)' },
-      { ug: 'Сәккиз',  en: 'Eight (8)' },
-      { ug: 'Тоққуз',  en: 'Nine (9)' },
-      { ug: 'Он',      en: 'Ten (10)' },
-      { ug: 'Қизил',   en: 'Red' },
-      { ug: 'Яшил',    en: 'Green' },
-      { ug: 'Көк',     en: 'Blue' },
-      { ug: 'Ақ',      en: 'White' },
-      { ug: 'Қара',    en: 'Black' },
-      { ug: 'Сары',    en: 'Yellow' },
-    ]
-  },
-  // ── INTERMEDIATE (add when ready) ──────────────────
-  // {
-  //   id: 'body', level: 2, emoji: '🫀',
-  //   nameUg: 'Тән Әзалири', nameEn: 'Body Parts',
-  //   words: [ ... ]
-  // },
-  // {
-  //   id: 'time', level: 2, emoji: '🕐',
-  //   nameUg: 'Вақит', nameEn: 'Time & Days',
-  //   words: [ ... ]
-  // },
-];
+const CATEGORIES = decodeGameData('flashcards');
 
 // ═══════════════════════════════════════════════════════
 //  SPACED REPETITION  (simplified SM-2)
@@ -410,7 +323,7 @@ function showCats() {
       <div class="cat-card" onclick="startSession('${cat.id}')">
         <div class="cat-emoji">${cat.emoji}</div>
         <div class="cat-name-ug">${cat.nameUg}</div>
-        <div class="cat-name-en">${cat.nameEn}</div>
+        <div class="cat-name-en">${cat.nameRu}</div>
         <div class="cat-meta">
           ${dueChip}
           <span class="cat-mastered">${mastered}/${total} ✓</span>
@@ -460,7 +373,7 @@ function showCard() {
   card.classList.remove('flipped');
 
   document.getElementById('card-ug-front').textContent = w.ug;
-  document.getElementById('card-en').textContent       = w.en;
+  document.getElementById('card-en').textContent       = w.ru;
   document.getElementById('card-ug-back').textContent  = w.ug;
   document.getElementById('card-cat-lbl').textContent  = sCat.nameUg.toUpperCase();
   document.getElementById('rating-row').classList.add('hidden');
